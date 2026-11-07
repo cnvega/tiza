@@ -41,7 +41,7 @@ D12 queda así: *Código AGPL-3.0-only con licencia comercial dual del titular (
 | Alternativa | Por qué no |
 | --- | --- |
 | MIT o Apache-2.0 | Máxima adopción, pero sin vía de ingreso propia. Sigue siendo la opción de respaldo si la gestión del CLA resulta costosa. |
-| Mantener GPLv3 | No cubre el uso como servicio web y no habilita licencia comercial en la práctica. |
+| Mantener GPLv3 | También admite licencia dual, pero no cubre el uso como servicio web, que es el escenario comercial más probable para una aplicación que corre en el navegador. |
 | *Open core* | Exige mantener dos bases de código y decidir qué funciones cerrar; prematuro en F0. |
 | Código disponible (FSL, PolyForm Noncommercial) | No es *open source* según la OSI; reduce la adopción y la credibilidad académica, y «no comercial» es ambiguo para docentes de instituciones privadas. |
 
