@@ -35,7 +35,7 @@ Documento de arranque para cualquier sesión de Claude (chat o Claude Code) que 
 | D9 | Pruebas: Vitest (unidad), Playwright con comparación de imágenes (visual), corpus `.tiza` |
 | D10 | El LLM nunca produce animación: solo contenido en formato `.tiza` |
 | D11 | El guion `.tiza` es la única fuente de verdad; las correcciones del inspector se guardan como `\id` |
-| D12 | Licencia GPLv3 (`LICENSE` en la raíz). Toda dependencia nueva debe ser compatible con GPLv3: MIT, BSD, Apache-2.0, MPL-2.0 o LGPL sirven; licencias propietarias o que prohíban uso comercial, no |
+| D12 | Licencias (ADR 0001): código AGPL-3.0-only con licencia comercial dual del titular; especificación y documentación CC BY 4.0; corpus CC BY-SA 4.0. Dependencias nuevas solo MIT, BSD, ISC, Apache-2.0 o MPL-2.0; no GPL, AGPL ni LGPL de terceros, ni licencias propietarias o que prohíban uso comercial. Contribuciones externas con CLA (`CLA.md`) |
 
 ---
 
