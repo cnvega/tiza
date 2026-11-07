@@ -17,3 +17,4 @@ Antes de cambiar nada, lee `docs/coordinacion.md` y `docs/estado.md`. Si tu tare
 - TypeScript estricto, pnpm workspaces, Node 22 LTS (cuando exista el andamiaje de W0).
 - Guiones `.tiza` en `corpus/<categoria>/<nn>-<slug>.tiza`, con bloque `prueba` en el encabezado.
 - Idioma del código, comentarios, issues y documentación: español.
+- Licencias (D12, ADR 0001): no agregues dependencias que no sean MIT, BSD, ISC, Apache-2.0 o MPL-2.0. No copies código de terceros sin verificar su licencia. Los PR externos requieren aceptar el CLA (`CLA.md`).

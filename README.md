@@ -38,10 +38,16 @@ $$ 3x = 20 - 5 $$
 
 Cada cambio parte de un issue, se hace en una rama `w<n>/<slug>` y entra a `main` por pull request. Los detalles están en [`docs/coordinacion.md`](docs/coordinacion.md).
 
-## Licencia
+## Licencias
 
-GNU GPL v3. Ver [`LICENSE`](LICENSE).
+| Parte | Licencia |
+| --- | --- |
+| Código | [GNU AGPL v3](LICENSE) (`AGPL-3.0-only`), con [licencia comercial](LICENSE-COMMERCIAL.md) disponible |
+| Especificación y documentación (`docs/`) | [CC BY 4.0](docs/LICENSE.md) |
+| Corpus de guiones (`corpus/`) | [CC BY-SA 4.0](corpus/LICENSE.md) |
+
+Usar Tiza para enseñar, en vivo o en video, gratis o pagado, no requiere licencia comercial. Detalles en [`LICENSE-COMMERCIAL.md`](LICENSE-COMMERCIAL.md). Para contribuir, ver [`CONTRIBUTING.md`](CONTRIBUTING.md) y el [CLA](CLA.md).
 
 ## Autor
 
-Cristian Vega (Universidad Central de Chile).
+Cristian A. Vega Martínez. Proyecto personal del autor.
