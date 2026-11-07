@@ -1,0 +1,49 @@
+---
+formato: tiza/0.1
+titulo: Tercera ley de Kepler para una órbita circular
+curso: Astrofísica
+tema: pizarron-verde
+pizarra: lineas
+supuestos:
+  positivos: [G, M, m, r, T, v]
+prueba:
+  objetivo: cancelar con \id, pasar desde un denominador y unión de potencias
+  cubre: [cancelar, pasar, fraccion, potencia, id, recuadro]
+  esperado: advertencia:W02
+---
+
+## Igualamos fuerzas
+$$ \frac{G M \id{ms}{m}}{r^2} = \frac{\id{mc}{m}\, v^2}{r} $$
+> En una órbita circular, la gravedad aporta la fuerza centrípeta.
+
+## La masa del satélite se cancela
+:: cancelar ms mc
+$$ \frac{G M}{r^2} = \frac{v^2}{r} $$
+> La masa m aparece a ambos lados: el período no depende de ella.
+
+## Multiplicamos por r
+:: ambos-lados \cdot r
+$$ \frac{G M}{r} = v^2 $$
+
+## Escribimos la velocidad con el período
+:: sustituir v = \frac{2\pi r}{T}
+$$ \frac{G M}{r} = \left(\frac{2\pi r}{T}\right)^2 $$
+> En una vuelta, el satélite recorre 2πr en un tiempo T.
+
+## Desarrollamos el cuadrado
+:: expandir
+$$ \frac{G M}{r} = \frac{4\pi^2 r^2}{T^2} $$
+
+## T² pasa multiplicando
+:: pasar T^2 izq
+$$ \frac{\id{gm}{G M}}{\id{rr}{r}}\, T^2 = 4\pi^2 r^2 $$
+
+## GM/r pasa dividiendo
+:: pasar \frac{GM}{r} der
+$$ T^2 = \frac{4\pi^2 r^2\, \id{rr}{r}}{\id{gm}{G M}} $$
+
+## Reunimos las potencias de r
+:: simplificar r
+$$ T^2 = \frac{4\pi^2}{G M}\, r^3 $$
+:: recuadro
+> El cuadrado del período crece como el cubo del radio: la tercera ley de Kepler.

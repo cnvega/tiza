@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+*.log
+.DS_Store
+.env
+.env.*
+__pycache__/
+.venv/
+# capturas de pruebas locales
+shot_*.png
+play_*.png

@@ -1,0 +1,31 @@
+---
+formato: tiza/0.1
+titulo: Velocidad de caída desde el reposo
+curso: Física general
+pizarra: lineas
+supuestos:
+  positivos: [m, g, h, v]
+prueba:
+  objetivo: cancelar con \id, pasar con #n y aparición de una raíz
+  cubre: [cancelar, pasar, referencia-n, resaltar, raiz, recuadro]
+  esperado: ok
+---
+
+## Conservación de la energía
+$$ \id{m1}{m} g h = \frac{1}{2} \id{m2}{m} v^2 $$
+> Toda la energía potencial se convierte en cinética.
+
+## La masa se cancela
+:: cancelar m1 m2
+$$ g h = \frac{1}{2} v^2 $$
+
+## El 2 pasa multiplicando
+:: pasar 2#1 izq
+$$ \id{dos}{2} g h = v^2 $$
+> El 2 del denominador pasa al otro lado multiplicando.
+
+## Sacamos raíz cuadrada
+:: resaltar v^2
+$$ v = \sqrt{\id{dos}{2} g h} $$
+:: recuadro
+> Como v es positiva, nos quedamos con la raíz positiva.

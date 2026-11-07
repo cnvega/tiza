@@ -1,0 +1,161 @@
+# Tiza — coordinación técnica para sesiones paralelas
+
+Documento de arranque para cualquier sesión de Claude (chat o Claude Code) que trabaje en Tiza.
+**Léelo completo antes de tocar código o especificaciones.** Mantén este archivo corto: el detalle vive en el repositorio.
+
+- Propuesta técnica completa: https://claude.ai/artifact/Pr3v3RUE9W86fmLdge6yN3
+- Formato de entrada: `tiza-formato-v0.1.md` (en este proyecto y en `docs/spec/` del repo)
+- Repositorio GitHub: https://github.com/cnvega/tiza
+- Responsable: Cris (decide alcance, aprueba PR y contratos).
+
+---
+
+## 1. Qué es Tiza, en cinco líneas
+
+1. El docente escribe una derivación como guion `.tiza` (Markdown + LaTeX, un bloque por paso).
+2. El núcleo compone cada paso con MathJax 4 en glifos SVG, empareja glifos entre pasos y planifica gestos en compases.
+3. Un reloj virtual dibuja cada cuadro como función pura del tiempo (Canvas 2D con efecto tiza).
+4. Salidas: presentación en vivo con clic, fuente para OBS, video exportado, visor HTML y apunte PDF.
+5. Servicios laterales, fuera del núcleo: verificador CAS (SymPy) y asistente LLM (propone pasos; nada entra sin verificación y aprobación).
+
+---
+
+## 2. Decisiones fijadas (no cambiar sin ADR)
+
+| # | Decisión |
+| --- | --- |
+| D1 | Monorepo TypeScript estricto con pnpm workspaces; Node 22 LTS |
+| D2 | Tipografía: MathJax 4, TeX → SVG sin caché de fuentes (`fontCache: 'none'`) |
+| D3 | Estructura matemática: Compute Engine (MathJSON); MathML de MathJax como respaldo |
+| D4 | Dibujo: Canvas 2D; WebGL solo si la textura de tiza lo exige |
+| D5 | Reloj virtual: `cuadro(t)` puro, sin estado acumulado entre cuadros |
+| D6 | Verificación: SymPy (Python 3.12) — CLI primero, Pyodide en el navegador después |
+| D7 | Video: WebCodecs + Mediabunny en navegador; ffmpeg en escritorio/CI |
+| D8 | Interfaz: React + Vite; el núcleo no importa React |
+| D9 | Pruebas: Vitest (unidad), Playwright con comparación de imágenes (visual), corpus `.tiza` |
+| D10 | El LLM nunca produce animación: solo contenido en formato `.tiza` |
+| D11 | El guion `.tiza` es la única fuente de verdad; las correcciones del inspector se guardan como `\id` |
+| D12 | Licencia GPLv3 (`LICENSE` en la raíz). Toda dependencia nueva debe ser compatible con GPLv3: MIT, BSD, Apache-2.0, MPL-2.0 o LGPL sirven; licencias propietarias o que prohíban uso comercial, no |
+
+---
+
+## 3. Estructura del repositorio
+
+```text
+tiza/
+  CLAUDE.md                 instrucciones para Claude Code (copia de las secciones 4–7)
+  docs/
+    spec/tiza-formato.md    formato de entrada (contrato C1)
+    adr/NNNN-titulo.md      registro de decisiones
+    estado.md               tablero corto: qué está en curso y quién
+  esquemas/                 JSON Schema de los contratos C2–C5
+  paquetes/
+    guion/        C1 → C2   analizador y validación
+    tipografia/   C2 → C3   LaTeX a glifos con MathJax
+    emparejar/    C3 → C4   correspondencias en tres niveles
+    animacion/    C4 → C5   gestos, compases, línea de tiempo
+    dibujo/       C5 → px   Canvas, efecto tiza, temas
+    verificar/    C2 → estados   (Python: verificar-py/)
+    exportar/     video, subtítulos, visor HTML, PDF
+    asistente/    CLI LLM: proponer, verificar, reintentar
+  apps/
+    prototipo/    F0: demo de una página
+    estudio/      editor con vista previa (F3)
+    presentador/  pizarra, vista presentador, fuente OBS (F2)
+    escritorio/   Tauri (F7)
+  corpus/
+    algebra/ fisica/ calculo/ astrofisica/ bordes/
+```
+
+---
+
+## 4. Contratos entre paquetes (la clave del trabajo en paralelo)
+
+Cada paquete solo depende de los **contratos**, no de la implementación de otro paquete. Mientras un contrato esté en `esquemas/` con ejemplos, se puede trabajar contra él con datos de prueba.
+
+| Id | Contrato | Productor → consumidor | Archivo |
+| --- | --- | --- | --- |
+| C1 | Formato `.tiza` | autor → `guion` | `docs/spec/tiza-formato.md` |
+| C2 | `PasoCompilado[]` | `guion` → `tipografia`, `verificar`, `asistente` | `esquemas/paso-compilado.schema.json` |
+| C3 | `ConjuntoGlifos` por paso (glifos, piezas estirables, ruta MathML, ids, lado) | `tipografia` → `emparejar`, `dibujo` | `esquemas/glifos.schema.json` |
+| C4 | `Correspondencias` (parejas, salidas, entradas) | `emparejar` → `animacion` | `esquemas/correspondencias.schema.json` |
+| C5 | `LineaDeTiempo` (compases con fases señalar/actuar/asentar y pistas por glifo) | `animacion` → `dibujo`, `exportar`, `presentador` | `esquemas/linea-tiempo.schema.json` |
+| C6 | `EstadoVerificacion` por paso | `verificar` → `estudio`, `exportar` | `esquemas/verificacion.schema.json` |
+
+Reglas:
+
+- Cambiar un contrato = PR propio con ADR, revisado por Cris, **antes** de cambiar código que lo use.
+- Todo contrato trae al menos 3 ejemplos válidos en `esquemas/ejemplos/`, generados desde el corpus.
+- Ningún paquete lee archivos internos de otro.
+
+---
+
+## 5. Frentes de trabajo y paralelismo
+
+| Frente | Paquete(s) | Depende de | Puede empezar | Tipo de sesión |
+| --- | --- | --- | --- | --- |
+| W0 Andamiaje | raíz, CI, esquemas vacíos | — | ya | Code |
+| W1 Formato y analizador | `guion` | C1 | ya | Code |
+| W2 Corpus de guiones | `corpus/` | C1 | ya | chat o Code (habilidad de guiones) |
+| W3 Tipografía | `tipografia` | C2 (ejemplos) | tras W0 | Code |
+| W4 Emparejamiento | `emparejar` | C3 (ejemplos) | tras W0, con glifos de prueba | Code |
+| W5 Animación y dibujo | `animacion`, `dibujo` | C4, C5 | tras W0 | Code |
+| W6 Prototipo F0 | `apps/prototipo` | W1, W3, W4, W5 mínimos | cuando haya C3–C5 | Code |
+| W7 Verificador | `verificar-py` | C2 | ya (Python, independiente) | Code |
+| W8 Asistente LLM | `asistente` | C1, W7 | tras W7 CLI | Code (requiere clave API local) |
+| W9 Diseño y revisión | docs, ADR, revisión de PR | — | siempre | chat |
+
+Paralelismo seguro hoy: **W0, W1, W2 y W7** no se pisan. W3–W5 arrancan en paralelo apenas W0 publique esquemas y ejemplos.
+
+Orden crítico del prototipo F0: W0 → (W1 ∥ W3) → W4 → W5 → W6. Criterio de salida F0: 80 % de 30 pares de prueba bien emparejados y 60 fps en el equipo de referencia.
+
+---
+
+## 6. Protocolo de cada sesión
+
+**Al empezar**
+
+1. Leer este documento, `docs/estado.md` y el issue que se va a tomar.
+2. Si no hay issue, crearlo con: frente (W#), objetivo, contrato(s) que toca, criterio de aceptación.
+3. Marcar el issue como asignado a la sesión (comentario `En curso — sesión <fecha> <chat|code>`) y anotarlo en `docs/estado.md`.
+
+**Mientras trabaja**
+
+4. Rama `w<n>/<slug-corto>` desde `main` (ej. `w4/emparejamiento-nivel3`). Una rama por issue.
+5. No editar paquetes fuera de su frente. Si necesita algo de otro frente, abrir issue y usar datos de prueba.
+6. Commits pequeños en español, formato `paquete: verbo en presente` (ej. `emparejar: agrega costo por cambio de escala`).
+7. Pruebas junto al código; cada error corregido deja un caso en `corpus/` o en pruebas.
+
+**Al terminar**
+
+8. PR a `main` con: issue enlazado, qué cambió, cómo se probó, capturas o GIF si es visual.
+9. CI en verde (tipos, lint, Vitest, validación del corpus, pruebas visuales).
+10. Comentar en el issue el estado final y lo pendiente; actualizar `docs/estado.md`.
+11. Nunca hacer merge propio de cambios de contrato: los aprueba Cris.
+
+**Sesiones de chat** (sin repositorio local): producen especificaciones, ADR, guiones de corpus y revisiones. Entregan archivos para que una sesión Code o Cris los suba, o abren el PR si tienen acceso a GitHub.
+
+---
+
+## 7. Definición de terminado
+
+- Tipos estrictos sin `any` en APIs públicas; ESLint y Prettier sin errores.
+- Cobertura ≥ 80 % en `guion`, `emparejar` y `animacion`.
+- Funciona con todos los guiones de `corpus/` marcados `esperado: ok`, y falla con el código esperado en los demás.
+- Determinismo: el mismo guion produce los mismos cuadros (prueba de hash por cuadro en 3 instantes).
+- Documentación breve en el `README.md` del paquete.
+
+---
+
+## 8. Estado actual
+
+| Fecha | Hito | Estado |
+| --- | --- | --- |
+| 2026-11-06 | Propuesta técnica y plan | Hecho |
+| 2026-11-07 | Formato `.tiza` v0.1 y este documento | Hecho |
+| 2026-11-07 | Prototipo F0 publicado: https://claude.ai/artifact/Ueg8LhVjy8gtTkvtYjhymB (código para `apps/prototipo/`) | En prueba |
+| 2026-11-07 | Repositorio creado: https://github.com/cnvega/tiza | Hecho |
+| — | Primer commit con documentos y prototipo; luego W0 | En curso (Cris) |
+| 2026-12-18 (meta) | Decisión de salida de F0 | Pendiente |
+
+Calendario base: inicio 30 nov 2026; MVP 19 feb 2027; v1.0 18 jun 2027 (un desarrollador a tiempo completo más apoyo parcial para W8).

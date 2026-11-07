@@ -1,0 +1,1023 @@
+<title>Prototipo Tiza</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: pizarrón protagonista a la izquierda, panel de guion y diagnóstico a la derecha; en teléfono, apilado. */
+:root {
+  --bg: #eef1ee;
+  --surface: #f9fbf9;
+  --line: #cfd8d2;
+  --fg: #17221d;
+  --muted: #56645c;
+  --accent: #2f6b4f;
+  --accent-ink: #ffffff;
+  --warn: #9a5b00;
+  --err: #b42318;
+  --ok: #24724a;
+  --font-ui: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111714; --surface: #18201c; --line: #2b3832; --fg: #e4ece7; --muted: #9aaba1;
+  --accent: #7cc4a0; --accent-ink: #0f1a14; --warn: #e3a64a; --err: #f08a7e; --ok: #7cc4a0; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #111714; --surface: #18201c; --line: #2b3832; --fg: #e4ece7; --muted: #9aaba1;
+  --accent: #7cc4a0; --accent-ink: #0f1a14; --warn: #e3a64a; --err: #f08a7e; --ok: #7cc4a0; color-scheme: dark }
+
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); font-size: 15px; }
+.app { height: 100%; display: grid; grid-template-rows: auto 1fr; padding-left: max(12px, env(safe-area-inset-left, 0px)); padding-right: max(12px, env(safe-area-inset-right, 0px)); padding-block: 10px; gap: 10px; box-sizing: border-box; }
+@media (max-width: 860px) { .app { padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); height: auto; } }
+
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+header h1 { font-size: 17px; margin: 0; letter-spacing: .01em; }
+header h1 span { color: var(--muted); font-weight: 400; }
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-left: auto; }
+button, select { font: inherit; font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 700; }
+button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.speed { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.speed output { font-variant-numeric: tabular-nums; min-width: 3.2em; color: var(--fg); }
+input[type=range] { accent-color: var(--accent); width: 110px; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 10px; min-height: 0; }
+@media (max-width: 860px) { .main { grid-template-columns: 1fr; } }
+
+.stage { display: grid; grid-template-rows: 1fr auto; gap: 8px; min-height: 0; min-width: 0; }
+.board-wrap { position: relative; min-height: 320px; border-radius: 8px; overflow: hidden; background: #24382d; box-shadow: inset 0 0 0 6px #6b4f35, inset 0 0 0 7px #3d2c1e; }
+@media (max-width: 860px) { .board-wrap { aspect-ratio: 4 / 3; min-height: 0; max-width: 100%; } }
+.board-wrap:fullscreen { border-radius: 0; box-shadow: none; }
+canvas#board { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: pointer; }
+.hud { position: absolute; left: 14px; top: 12px; font-size: 12px; color: rgba(240,238,228,.62); letter-spacing: .06em; text-transform: uppercase; pointer-events: none; font-variant-numeric: tabular-nums; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(240,238,228,.75); font-size: 15px; }
+
+.caption { display: grid; gap: 2px; min-height: 3.2em; padding: 2px 4px; }
+.caption .t { font-weight: 700; font-size: 15px; }
+.caption .n { color: var(--muted); max-width: 70ch; }
+
+aside { display: grid; grid-template-rows: auto auto minmax(160px, 1fr) auto minmax(120px, .8fr); gap: 8px; min-height: 0; min-width: 0; }
+@media (max-width: 860px) { aside { grid-template-rows: auto auto 320px auto auto; } }
+aside h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 4px 0 0; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.row select { flex: 1; min-width: 0; }
+textarea#src { width: 100%; height: 100%; box-sizing: border-box; resize: none; font-family: var(--font-mono); font-size: 12.5px; line-height: 1.5; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px; tab-size: 2; min-height: 160px; }
+.diag { overflow: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-size: 13px; min-height: 120px; }
+.diag ol { margin: 0; padding-left: 1.4em; display: grid; gap: 6px; }
+.diag li.cur { font-weight: 700; }
+.diag .stats { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 400; display: block; }
+.msg { font-size: 12.5px; display: block; }
+.msg.E { color: var(--err); } .msg.W { color: var(--warn); }
+.keys { font-size: 12px; color: var(--muted); }
+kbd { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--surface); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="app">
+  <header>
+    <h1>Tiza <span>· prototipo F0</span></h1>
+    <div class="controls">
+      <button id="bPrev" title="Paso anterior (←)">◀ Atrás</button>
+      <button id="bNext" class="primary" title="Siguiente paso (→, espacio, clic en la pizarra)">Siguiente ▶</button>
+      <button id="bAuto" aria-pressed="false" title="Reproducción automática (P)">Auto</button>
+      <button id="bRestart" title="Volver al inicio (Inicio)">Reiniciar</button>
+      <label class="speed" for="speed">Velocidad <input id="speed" type="range" min="0.25" max="3" step="0.25" value="1"><output id="speedOut">1×</output></label>
+      <select id="mode" aria-label="Modo de pizarra">
+        <option value="guion">Pizarra: según guion</option>
+        <option value="lineas">Pizarra: líneas</option>
+        <option value="en-lugar">Pizarra: en el lugar</option>
+      </select>
+      <select id="theme" aria-label="Tema de pizarra">
+        <option value="pizarron-verde">Pizarrón verde</option>
+        <option value="pizarron-negro">Pizarrón negro</option>
+        <option value="pizarra-blanca">Pizarra blanca</option>
+      </select>
+      <button id="bPairs" aria-pressed="false" title="Mostrar las parejas detectadas entre pasos">Parejas</button>
+      <button id="bFull" title="Pantalla completa (F)">⛶</button>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="stage">
+      <div class="board-wrap" id="boardWrap">
+        <canvas id="board" aria-label="Pizarrón animado"></canvas>
+        <div class="hud" id="hud"></div>
+        <div class="loading" id="loading">Cargando tipografía matemática…</div>
+      </div>
+      <div class="caption" aria-live="polite"><div class="t" id="capT"></div><div class="n" id="capN"></div></div>
+    </section>
+
+    <aside>
+      <h2>Guion</h2>
+      <div class="row">
+        <select id="sample" aria-label="Guion de ejemplo"></select>
+        <button id="bApply" class="primary">Aplicar guion</button>
+      </div>
+      <textarea id="src" spellcheck="false" aria-label="Guion .tiza"></textarea>
+      <h2>Diagnóstico por paso</h2>
+      <div class="diag" id="diag"><span class="keys">Compilando…</span></div>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+<script>
+"use strict";
+/* ======================================================================
+   Tiza · prototipo F0
+   guion .tiza → pasos → glifos (MathJax 4 SVG) → parejas → línea de tiempo
+   → cuadro(t) en Canvas con efecto tiza. Cada cuadro es función pura de
+   (paso, tiempo virtual, configuración de vista).
+   ====================================================================== */
+
+const LOCAL = new URLSearchParams(location.search).has('local');
+const MJ_URL = LOCAL ? '/node_modules/mathjax/tex-svg.js' : 'https://cdn.jsdelivr.net/npm/mathjax@4.1.3/tex-svg.js';
+const FONT_PATH = LOCAL ? '/node_modules/@mathjax/mathjax-newcm-font' : 'https://cdn.jsdelivr.net/npm/@mathjax/mathjax-newcm-font@4.1.3';
+
+/* ---------------------------------------------------------------- guiones de ejemplo */
+const SAMPLES = {
+  'kepler': String.raw`---
+formato: tiza/0.1
+titulo: Tercera ley de Kepler para una órbita circular
+curso: Astrofísica
+tema: pizarron-verde
+pizarra: lineas
+supuestos:
+  positivos: [G, M, m, r, T, v]
+---
+
+## Igualamos fuerzas
+$$ \frac{G M \id{ms}{m}}{r^2} = \frac{\id{mc}{m}\, v^2}{r} $$
+> En una órbita circular, la gravedad aporta la fuerza centrípeta.
+
+## La masa del satélite se cancela
+:: cancelar ms mc
+$$ \frac{G M}{r^2} = \frac{v^2}{r} $$
+> La masa m aparece a ambos lados: el período no depende de ella.
+
+## Multiplicamos por r
+:: ambos-lados \cdot r
+$$ \frac{G M}{r} = v^2 $$
+
+## Escribimos la velocidad con el período
+:: sustituir v = \frac{2\pi r}{T}
+$$ \frac{G M}{r} = \left(\frac{2\pi r}{T}\right)^2 $$
+> En una vuelta, el satélite recorre 2πr en un tiempo T.
+
+## Desarrollamos el cuadrado
+:: expandir
+$$ \frac{G M}{r} = \frac{4\pi^2 r^2}{T^2} $$
+
+## T² pasa multiplicando
+:: pasar T^2 izq
+$$ \frac{\id{gm}{G M}}{\id{rr}{r}}\, T^2 = 4\pi^2 r^2 $$
+
+## GM/r pasa dividiendo
+:: pasar \frac{GM}{r} der
+$$ T^2 = \frac{4\pi^2 r^2\, \id{rr}{r}}{\id{gm}{G M}} $$
+
+## Reunimos las potencias de r
+:: simplificar r
+$$ T^2 = \frac{4\pi^2}{G M}\, r^3 $$
+:: recuadro
+> El cuadrado del período crece como el cubo del radio: la tercera ley de Kepler.
+`,
+  'caida': String.raw`---
+formato: tiza/0.1
+titulo: Velocidad de caída desde el reposo
+curso: Física general
+pizarra: lineas
+supuestos:
+  positivos: [m, g, h, v]
+---
+
+## Conservación de la energía
+$$ \id{m1}{m} g h = \frac{1}{2} \id{m2}{m} v^2 $$
+> Toda la energía potencial se convierte en cinética.
+
+## La masa se cancela
+:: cancelar m1 m2
+$$ g h = \frac{1}{2} v^2 $$
+
+## El 2 pasa multiplicando
+:: pasar 2#1 izq
+$$ \id{dos}{2} g h = v^2 $$
+> El 2 del denominador pasa al otro lado multiplicando.
+
+## Sacamos raíz cuadrada
+:: resaltar v^2
+$$ v = \sqrt{\id{dos}{2} g h} $$
+:: recuadro
+> Como v es positiva, nos quedamos con la raíz positiva.
+`,
+  'despeje': String.raw`---
+formato: tiza/0.1
+titulo: Despeje lineal
+pizarra: en-lugar
+---
+
+## Ecuación inicial
+$$ 3x + 5 = 20 $$
+
+## El 5 pasa restando
+:: pasar 5 der
+$$ 3x = 20 - 5 $$
+
+## Restamos
+$$ 3x = 15 $$
+
+## El 3 pasa dividiendo
+:: pasar 3 der
+$$ x = \frac{15}{3} $$
+
+## Dividimos
+$$ x = 5 $$
+:: recuadro
+> Despejamos x.
+`
+};
+const SAMPLE_NAMES = { kepler: 'Tercera ley de Kepler', caida: 'Caída libre desde el reposo', despeje: 'Despeje lineal (en el lugar)' };
+
+/* ---------------------------------------------------------------- constantes */
+const VERBS = {
+  pasar: { impl: true }, cancelar: { impl: true }, resaltar: { impl: true }, pausa: { impl: true },
+  recuadro: { impl: true }, 'en-lugar': { impl: true }, 'nueva-linea': { impl: true },
+  borrar: { impl: false }, sustituir: { impl: false, rest: true }, expandir: { impl: false },
+  factorizar: { impl: false }, simplificar: { impl: false }, 'ambos-lados': { impl: false, rest: true },
+  derivar: { impl: false }, integrar: { impl: false }, aproximar: { impl: false }, nota: { impl: false },
+  llave: { impl: false }, flecha: { impl: false }, columna: { impl: false }
+};
+const TRANSFORM_VERBS = new Set(['pasar','cancelar','sustituir','expandir','factorizar','simplificar','ambos-lados','derivar','integrar']);
+const RELATIONS = new Set([0x3D, 0x2248, 0x3C, 0x3E, 0x2264, 0x2265, 0x2260, 0x221D]);
+const INVISIBLE = new Set([0x2061, 0x2062, 0x2063, 0x2064, 0x200B]);
+const SCRIPTED = new Set(['mfrac','msup','msub','msubsup','msqrt','mroot','munderover','munder','mover']);
+const EM = 1000;            // unidades MathJax por em
+const LINE_GAP = 650;       // separación vertical entre líneas (unidades)
+const THEMES = {
+  'pizarron-verde': { bg: '#26392e', bg2: '#2c4135', ink: '#f1efe6', hi: '#f3d65f', strike: '#f29a8c', box: '#9fd7ff', grain: 0.42 },
+  'pizarron-negro': { bg: '#1e2124', bg2: '#25292d', ink: '#f2f1ec', hi: '#f6d35a', strike: '#f49b8f', box: '#9fd7ff', grain: 0.42 },
+  'pizarra-blanca': { bg: '#f6f7f5', bg2: '#eef0ec', ink: '#1b2433', hi: '#c2410c', strike: '#c81e1e', box: '#1d4ed8', grain: 0.08 }
+};
+
+/* ---------------------------------------------------------------- utilidades */
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;          // easeInOutCubic
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const prog = (t, s, d) => d <= 0 ? (t >= s ? 1 : 0) : clamp((t - s) / d, 0, 1);
+function hash(n) { n = (n ^ 61) ^ (n >>> 16); n = n + (n << 3); n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return (n >>> 0) / 4294967296; }
+
+/* ---------------------------------------------------------------- analizador .tiza */
+function tokenizeArgs(s) {
+  const out = []; let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (c === ' ' || c === '\t') { i++; continue; }
+    if (c === '"') { let j = i + 1; while (j < s.length && s[j] !== '"') j++; out.push({ type: 'str', v: s.slice(i + 1, j) }); i = j + 1; continue; }
+    if (c === '{') { let d = 0, j = i; for (; j < s.length; j++) { if (s[j] === '{') d++; else if (s[j] === '}') { d--; if (!d) break; } } out.push({ type: 'tex', v: s.slice(i + 1, j) }); i = j + 1; continue; }
+    let j = i, d = 0;
+    for (; j < s.length; j++) { if (s[j] === '{') d++; else if (s[j] === '}') d--; else if ((s[j] === ' ' || s[j] === '\t') && d === 0) break; }
+    out.push({ type: 'tok', v: s.slice(i, j) }); i = j;
+  }
+  return out;
+}
+function splitPlus(s) { const parts = []; let d = 0, last = 0; for (let i = 0; i < s.length; i++) { if (s[i] === '{') d++; else if (s[i] === '}') d--; else if (d === 0 && s.startsWith(' + ', i)) { parts.push(s.slice(last, i)); last = i + 3; i += 2; } } parts.push(s.slice(last)); return parts.map(p => p.trim()).filter(Boolean); }
+
+function parseAction(text, line, diags) {
+  const m = text.match(/^([a-z-]+)\s*(.*)$/);
+  if (!m) { diags.push({ lv: 'E', code: 'E08', line, msg: 'Acción ilegible: ' + text }); return null; }
+  const verbo = m[1], rest = m[2];
+  const spec = VERBS[verbo];
+  if (!spec) { diags.push({ lv: 'E', code: 'E08', line, msg: `Verbo desconocido «${verbo}»` }); return null; }
+  if (!spec.impl) diags.push({ lv: 'W', code: 'W02', line, msg: `«${verbo}» aún no está en el prototipo: se usa la transición automática` });
+  const act = { verbo, line, args: spec.rest ? [{ type: 'tex', v: rest }] : tokenizeArgs(rest) };
+  if (verbo === 'pasar') {
+    const lado = act.args.find(a => a.type === 'tok' && (a.v === 'izq' || a.v === 'der'));
+    const ref = act.args.find(a => a !== lado);
+    if (!lado || !ref) { diags.push({ lv: 'E', code: 'E08', line, msg: 'pasar necesita un término y un lado (izq o der)' }); return null; }
+    act.lado = lado.v; act.refs = [ref.v];
+  } else if (['cancelar', 'resaltar', 'recuadro'].includes(verbo)) {
+    act.refs = act.args.map(a => a.v);
+  } else if (verbo === 'pausa') {
+    act.seg = parseFloat(act.args[0]?.v); if (!(act.seg >= 0)) { diags.push({ lv: 'E', code: 'E08', line, msg: 'pausa necesita segundos' }); return null; }
+  }
+  return act;
+}
+
+function parseTiza(src) {
+  const diags = [];
+  src = src.replace(/\r\n?/g, '\n').replace(/<!--[\s\S]*?-->/g, m => m.replace(/[^\n]/g, ''));
+  const lines = src.split('\n');
+  if (lines[0].trim() !== '---') { diags.push({ lv: 'E', code: 'E01', line: 1, msg: 'Falta el encabezado YAML entre líneas ---' }); return { diags, steps: [], header: {} }; }
+  let end = lines.findIndex((l, i) => i > 0 && l.trim() === '---');
+  if (end < 0) { diags.push({ lv: 'E', code: 'E01', line: 1, msg: 'El encabezado no se cierra con ---' }); return { diags, steps: [], header: {} }; }
+  let header = {};
+  try { header = jsyaml.load(lines.slice(1, end).join('\n')) || {}; } catch (e) { diags.push({ lv: 'E', code: 'E01', line: 2, msg: 'YAML inválido: ' + e.reason }); }
+  if (!header.formato) diags.push({ lv: 'E', code: 'E01', line: 1, msg: 'Falta la clave formato' });
+  else if (header.formato !== 'tiza/0.1') diags.push({ lv: 'E', code: 'E02', line: 2, msg: 'formato debe ser tiza/0.1' });
+  if (!header.titulo) diags.push({ lv: 'E', code: 'E03', line: 2, msg: 'Falta titulo' });
+  const KNOWN = ['formato','titulo','curso','etiquetas','tema','ritmo','pizarra','alinear','idioma','macros','supuestos','prueba'];
+  for (const k of Object.keys(header)) if (!KNOWN.includes(k)) diags.push({ lv: 'W', code: 'W01', line: 2, msg: `Clave desconocida «${k}»` });
+
+  const steps = []; let cur = null, inFormula = null;
+  for (let i = end + 1; i < lines.length; i++) {
+    const raw = lines[i], l = raw.trim(), ln = i + 1;
+    if (inFormula) {
+      const k = l.indexOf('$$');
+      if (k >= 0) { inFormula.push(l.slice(0, k)); cur.latex = inFormula.join(' ').trim(); inFormula = null; }
+      else inFormula.push(l);
+      continue;
+    }
+    if (/^##(\s|$)/.test(l)) { cur = { titulo: l.slice(2).trim(), line: ln, pre: [], post: [], latex: null, narr: [] }; steps.push(cur); continue; }
+    if (!l) continue;
+    if (!cur) { diags.push({ lv: 'W', code: 'W00', line: ln, msg: 'Texto fuera de un paso: se ignora' }); continue; }
+    if (l.startsWith('::')) {
+      const compas = splitPlus(l.slice(2).trim()).map(t => parseAction(t, ln, diags)).filter(Boolean);
+      if (compas.length) (cur.latex === null ? cur.pre : cur.post).push(compas);
+      continue;
+    }
+    if (l.startsWith('$$')) {
+      if (cur.latex !== null) diags.push({ lv: 'E', code: 'E06', line: ln, msg: 'Más de una fórmula en el paso' });
+      const body = l.slice(2), k = body.indexOf('$$');
+      if (k >= 0) cur.latex = body.slice(0, k).trim(); else inFormula = [body];
+      continue;
+    }
+    if (l.startsWith('>')) { cur.narr.push(l.slice(1).trim()); continue; }
+    diags.push({ lv: 'W', code: 'W00', line: ln, msg: 'Línea no reconocida: se ignora' });
+  }
+  if (!steps.length || steps[0].latex === null) diags.push({ lv: 'E', code: 'E04', line: end + 2, msg: 'El primer paso debe tener fórmula' });
+  if (steps[0]) for (const c of steps[0].pre) for (const a of c) if (TRANSFORM_VERBS.has(a.verbo)) diags.push({ lv: 'E', code: 'E12', line: a.line, msg: 'El primer paso no puede transformar' });
+  for (const s of steps) if (s.latex && /\\begin|\\\\|&/.test(s.latex)) diags.push({ lv: 'E', code: 'E07', line: s.line, msg: 'Construcción no admitida en v0.1 (entornos, \\\\ o &)' });
+  if (steps.length > 12) diags.push({ lv: 'W', code: 'W04', line: steps[12].line, msg: 'Más de 12 pasos: conviene dividir la derivación' });
+  return { header, steps, diags };
+}
+
+/* ---------------------------------------------------------------- MathJax → glifos */
+let mjHost;
+function texPrep(tex) { return tex.replace(/\\id\{([a-z][a-z0-9-]*)\}/g, '\\cssId{tz-$1}'); }
+
+async function typeset(tex) {
+  const node = await MathJax.tex2svgPromise(texPrep(tex), { display: true });
+  mjHost.appendChild(node);
+  try {
+    const svg = node.querySelector('svg');
+    if (svg.querySelector('[data-mml-node="merror"]')) {
+      const t = svg.querySelector('[data-mml-node="merror"]').getAttribute('title') || svg.textContent;
+      return { error: t || 'LaTeX inválido' };
+    }
+    const rootInv = svg.getScreenCTM().inverse();
+    const glyphs = [], rects = [];
+    let order = 0;
+    for (const el of svg.querySelectorAll('path, rect')) {
+      const m = rootInv.multiply(el.getScreenCTM());
+      const bb = el.getBBox();
+      const pts = [[bb.x, bb.y], [bb.x + bb.width, bb.y], [bb.x, bb.y + bb.height], [bb.x + bb.width, bb.y + bb.height]]
+        .map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]);
+      const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+      const box = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
+      const ids = []; let top = true, relCandidate = false;
+      for (let p = el.parentElement; p && p !== svg; p = p.parentElement) {
+        if (p.id && p.id.startsWith('tz-')) ids.push(p.id.slice(3));
+        const node = p.getAttribute('data-mml-node');
+        if (node && SCRIPTED.has(node)) top = false;
+      }
+      if (el.tagName === 'rect') {
+        rects.push({ kind: 'rect', box, ids, top, ch: -1 });
+        continue;
+      }
+      const d = el.getAttribute('d'); const ch = parseInt(el.getAttribute('data-c') || '0', 16);
+      if (!d || INVISIBLE.has(ch) || box.w === 0) continue;
+      glyphs.push({ kind: 'glyph', ch, d, m: [m.a, m.b, m.c, m.d, m.e, m.f], box, ids, top, order: order++ });
+    }
+    // relación principal: primer símbolo de relación fuera de fracciones o índices
+    const rel = glyphs.find(g => g.top && RELATIONS.has(g.ch));
+    const vb = svg.viewBox.baseVal;
+    const relX = rel ? rel.box.x + rel.box.w / 2 : vb.x + vb.width / 2;
+    const all = glyphs.concat(rects);
+    for (const g of all) {
+      g.box.x -= relX;
+      if (g.m) g.m[4] -= relX;
+      g.cx = g.box.x + g.box.w / 2; g.cy = g.box.y + g.box.h / 2;
+      g.side = rel ? (g.cx < 0 ? 'izq' : (g === rel ? 'rel' : 'der')) : 'der';
+      g.size = g.m ? Math.sqrt(Math.abs(g.m[0] * g.m[3] - g.m[1] * g.m[2])) : 1;
+      if (g.d) g.path = new Path2D(g.d);
+    }
+    if (rel) rel.isRel = true;
+    const minX = Math.min(...all.map(g => g.box.x)), maxX = Math.max(...all.map(g => g.box.x + g.box.w));
+    const minY = Math.min(vb.y, ...all.map(g => g.box.y)), maxY = Math.max(vb.y + vb.height, ...all.map(g => g.box.y + g.box.h));
+    return { glyphs, rects, hasRel: !!rel, ext: { minX, maxX, minY, maxY } };
+  } finally { node.remove(); }
+}
+
+const fragCache = new Map();
+async function fragmentChars(tex) {
+  if (fragCache.has(tex)) return fragCache.get(tex);
+  const r = await typeset(tex);
+  const seq = r.error ? null : r.glyphs.map(g => g.ch);
+  fragCache.set(tex, seq);
+  return seq;
+}
+
+/* ---------------------------------------------------------------- referencias */
+async function resolveRef(ref, glyphs, opts = {}) {
+  // devuelve { list: [glifos], ambiguous, missing }
+  if (/^[a-z][a-z0-9-]*$/.test(ref) && glyphs.some(g => g.ids.includes(ref))) {
+    return { list: glyphs.filter(g => g.ids.includes(ref)) };
+  }
+  let nth = 0, tex = ref;
+  const mm = ref.match(/^(.*)#(\d+)$/); if (mm) { tex = mm[1]; nth = parseInt(mm[2], 10); }
+  const seq = await fragmentChars(tex);
+  if (!seq || !seq.length) return { list: [], missing: true };
+  const pool = opts.side ? glyphs.filter(g => g.side === opts.side) : glyphs;
+  const hits = [];
+  for (let i = 0; i + seq.length <= pool.length; i++) {
+    let ok = true; for (let j = 0; j < seq.length; j++) if (pool[i + j].ch !== seq[j]) { ok = false; break; }
+    if (ok) hits.push(pool.slice(i, i + seq.length));
+  }
+  if (!hits.length) return { list: [], missing: true };
+  if (nth) return { list: hits[nth - 1] || [], missing: !hits[nth - 1] };
+  return { list: hits[0], ambiguous: hits.length > 1 };
+}
+
+/* ---------------------------------------------------------------- asignación (húngaro) */
+function hungarian(C) {
+  const n = C.length, INF = 1e18;
+  const u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0), p = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i; let j0 = 0; const minv = new Array(n + 1).fill(INF), used = new Array(n + 1).fill(false);
+    do {
+      used[j0] = true; const i0 = p[j0]; let delta = INF, j1 = 0;
+      for (let j = 1; j <= n; j++) if (!used[j]) {
+        const cur = C[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+      for (let j = 0; j <= n; j++) { if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta; }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+  const assign = new Array(n).fill(-1);
+  for (let j = 1; j <= n; j++) if (p[j]) assign[p[j] - 1] = j - 1;
+  return assign;
+}
+
+const DEL = 1.35; // costo de borrar o escribir un glifo
+function pairCost(a, b, nA, nB) {
+  const dx = Math.abs(b.cx - a.cx) / EM, dy = Math.abs(b.cy - a.cy) / EM;
+  const ds = Math.abs(Math.log((b.size || 1) / (a.size || 1)));
+  const dord = (a.order !== undefined && b.order !== undefined) ? Math.abs(a.order / nA - b.order / nB) : 0;
+  const side = a.side !== b.side ? 0.5 : 0;
+  if (a.kind === 'rect') return 0.25 * dx + 0.6 * dy + 0.8 * Math.abs(Math.log(b.box.w / a.box.w)) + side;
+  return 0.22 * dx + 0.55 * dy + 2 * ds + 1.1 * dord + side;
+}
+function assignGroup(A, B, nA, nB) {
+  const n = A.length + B.length; if (!A.length || !B.length) return [];
+  const C = Array.from({ length: n }, (_, i) => Array.from({ length: n }, (_, j) => {
+    if (i < A.length && j < B.length) return pairCost(A[i], B[j], nA, nB);
+    if (i < A.length) return DEL;            // a → borrar
+    if (j < B.length) return DEL;            // escribir b
+    return 0;
+  }));
+  const asg = hungarian(C), out = [];
+  for (let i = 0; i < A.length; i++) if (asg[i] < B.length) out.push([A[i], B[asg[i]]]);
+  return out;
+}
+
+/* ---------------------------------------------------------------- emparejamiento entre pasos */
+async function matchSteps(SA, SB, step, diags) {
+  const A = SA.glyphs, B = SB.glyphs;
+  const usedA = new Set(), usedB = new Set(), pairs = [];
+  const stats = { id: 0, accion: 0, auto: 0 };
+  const push = (a, b, via) => { if (usedA.has(a) || usedB.has(b)) return; usedA.add(a); usedB.add(b); pairs.push({ a, b, via }); stats[via]++; };
+  const forcedExit = new Set(), targets = new Set(), strikes = [], hiB = new Set();
+  let boxPost = false, pause = 0;
+
+  // acciones previas: resolver referencias
+  for (const compas of step.pre) for (const act of compas) {
+    if (act.verbo === 'cancelar') {
+      for (const r of act.refs) {
+        const res = await resolveRef(r, A);
+        if (res.missing) { diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${r}» en el paso anterior` }); continue; }
+        if (res.ambiguous) diags.push({ lv: 'E', code: 'E10', line: act.line, msg: `«${r}» aparece varias veces: usa ${r}#n` });
+        res.list.forEach(g => { forcedExit.add(g); targets.add(g); });
+        strikes.push(res.list);
+      }
+    } else if (act.verbo === 'pasar') {
+      const r = act.refs[0];
+      const ra = await resolveRef(r, A);
+      if (ra.missing) { diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${r}» en el paso anterior` }); continue; }
+      if (ra.ambiguous) diags.push({ lv: 'E', code: 'E10', line: act.line, msg: `«${r}» aparece varias veces: usa ${r}#n` });
+      ra.list.forEach(g => targets.add(g));
+      act._a = ra.list;
+    } else if (act.verbo === 'resaltar') {
+      for (const r of act.refs) { const res = await resolveRef(r, A); if (res.missing) diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${r}»` }); else res.list.forEach(g => targets.add(g)); }
+    } else if (act.verbo === 'pausa') pause += act.seg;
+  }
+  // nivel 1: identificadores del autor
+  const idsA = new Set(A.flatMap(g => g.ids)), idsB = new Set(B.flatMap(g => g.ids));
+  for (const id of idsA) if (idsB.has(id)) {
+    const ga = A.filter(g => g.ids.includes(id) && !forcedExit.has(g)), gb = B.filter(g => g.ids.includes(id));
+    for (let i = 0; i < Math.min(ga.length, gb.length); i++) push(ga[i], gb[i], 'id');
+  }
+  // pasar: el fragmento viaja al lado indicado
+  for (const compas of step.pre) for (const act of compas) if (act.verbo === 'pasar' && act._a) {
+    const rb = await resolveRef(act.refs[0], B, { side: act.lado });
+    if (!rb.missing) for (let i = 0; i < Math.min(act._a.length, rb.list.length); i++) push(act._a[i], rb.list[i], 'accion');
+    else for (const a of act._a) { // respaldo: mismo carácter, del lado indicado
+      const b = B.find(x => !usedB.has(x) && x.ch === a.ch && x.side === act.lado); if (b) push(a, b, 'accion');
+    }
+  }
+  // nivel 3: forma y posición, por carácter
+  const byCh = new Map();
+  for (const a of A) if (!usedA.has(a) && !forcedExit.has(a)) { if (!byCh.has(a.ch)) byCh.set(a.ch, [[], []]); byCh.get(a.ch)[0].push(a); }
+  for (const b of B) if (!usedB.has(b)) { if (!byCh.has(b.ch)) byCh.set(b.ch, [[], []]); byCh.get(b.ch)[1].push(b); }
+  for (const [, [ga, gb]] of byCh) for (const [a, b] of assignGroup(ga, gb, A.length, B.length)) push(a, b, 'auto');
+  // piezas estirables (rayas de fracción)
+  const rp = assignGroup(SA.rects, SB.rects, 1, 1);
+  const rectPairs = rp.map(([a, b]) => ({ a, b }));
+  const rUsedA = new Set(rp.map(p => p[0])), rUsedB = new Set(rp.map(p => p[1]));
+
+  for (const compas of step.post) for (const act of compas) {
+    if (act.verbo === 'recuadro') boxPost = true;
+    if (act.verbo === 'resaltar') for (const r of act.refs) { const res = await resolveRef(r, B); if (res.missing) diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${r}»` }); else res.list.forEach(g => hiB.add(g)); }
+    if (act.verbo === 'pausa') pause += act.seg;
+  }
+  return {
+    pairs, rectPairs,
+    exits: A.filter(a => !usedA.has(a)), entries: B.filter(b => !usedB.has(b)),
+    rectExits: SA.rects.filter(r => !rUsedA.has(r)), rectEntries: SB.rects.filter(r => !rUsedB.has(r)),
+    forcedExit, targets, strikes, hiB, boxPost, pause, stats
+  };
+}
+
+/* ---------------------------------------------------------------- compilación completa */
+let DOC = null;   // { header, steps:[{...,S, slot, trans}], slots, layout }
+
+async function compile(src, modeOverride) {
+  const { header, steps, diags } = parseTiza(src);
+  const fatal = diags.some(d => d.lv === 'E' && ['E01','E02','E03','E04'].includes(d.code));
+  if (fatal) return { header, steps: [], diags };
+  if (header.macros) { try { await MathJax.tex2svgPromise(String(header.macros)); } catch (e) {} }
+  const boardMode = modeOverride !== 'guion' ? modeOverride : (header.pizarra === 'en-lugar' ? 'en-lugar' : 'lineas');
+  const out = [];
+  let prev = null;
+  for (let k = 0; k < steps.length; k++) {
+    const st = steps[k]; st.diags = [];
+    if (st.latex !== null) {
+      const S = await typeset(st.latex);
+      if (S.error) { st.diags.push({ lv: 'E', code: 'E05', line: st.line, msg: 'LaTeX que no compila: ' + S.error }); S.glyphs = []; S.rects = []; S.ext = { minX: 0, maxX: 0, minY: -500, maxY: 200 }; }
+      st.S = S;
+      const n = S.glyphs.length; if (n > 60) st.diags.push({ lv: 'W', code: 'W03', line: st.line, msg: `${n} glifos: puede costar leerlo en proyección` });
+    } else if (prev) { st.S = prev.S; st.decorOnly = true; }
+    const flags = st.pre.flat().map(a => a.verbo);
+    let inPlace = boardMode === 'en-lugar';
+    if (flags.includes('en-lugar')) inPlace = true;
+    if (flags.includes('nueva-linea')) inPlace = false;
+    if (st.decorOnly) inPlace = true;
+    st.slot = (!prev) ? 0 : (inPlace ? prev.slot : prev.slot + 1);
+    st.inPlace = !!prev && inPlace;
+    if (prev) st.trans = await matchSteps(prev.S, st.S, st, st.diags);
+    else {
+      st.trans = { pairs: [], rectPairs: [], exits: [], entries: st.S.glyphs, rectExits: [], rectEntries: st.S.rects, forcedExit: new Set(), targets: new Set(), strikes: [], hiB: new Set(), boxPost: false, pause: 0, stats: { id: 0, accion: 0, auto: 0 } };
+      for (const compas of st.post) for (const act of compas) if (act.verbo === 'recuadro') st.trans.boxPost = true;
+    }
+    if (st.decorOnly) { // identidad: mismos glifos
+      st.trans.pairs = st.S.glyphs.map(g => ({ a: g, b: g, via: 'id' })); st.trans.exits = []; st.trans.entries = [];
+      st.trans.rectPairs = st.S.rects.map(r => ({ a: r, b: r })); st.trans.rectExits = []; st.trans.rectEntries = [];
+    }
+    schedule(st, k === 0);
+    out.push(st); prev = st;
+  }
+  // geometría de la pizarra
+  const nSlots = Math.max(...out.map(s => s.slot)) + 1;
+  const slotExt = Array.from({ length: nSlots }, () => ({ minY: 0, maxY: 0 }));
+  let left = 0, right = 0;
+  for (const s of out) { const e = s.S.ext; left = Math.max(left, -e.minX); right = Math.max(right, e.maxX); const se = slotExt[s.slot]; se.minY = Math.min(se.minY, e.minY); se.maxY = Math.max(se.maxY, e.maxY); }
+  const base = []; let y = 0;
+  for (let i = 0; i < nSlots; i++) { y += -slotExt[i].minY; base.push(y); y += slotExt[i].maxY + LINE_GAP; }
+  const layout = { left, right, base, slotExt, totalH: y - LINE_GAP };
+  return { header, steps: out, diags, layout, boardMode };
+}
+
+/* ---------------------------------------------------------------- línea de tiempo (tiempo virtual a 1×) */
+function schedule(st, first) {
+  const T = st.trans, sch = { glyph: new Map(), rect: new Map() };
+  const hasTargets = T.targets.size > 0;
+  const tSig = hasTargets ? 0.55 : 0.15;
+  const tAct = tSig + (T.pause || 0);
+  sch.sig = [0.05, tSig]; sch.strike = [0.15, 0.4];
+  // pares: quietos o en movimiento
+  // en el lugar, todo lo que cambia de posición se desliza; en líneas nuevas solo viaja lo que
+  // cambia de rol (lado, tamaño, altura) o lo que nombra una acción; el resto se reescribe
+  const roleChange = p => p.a.side !== p.b.side || Math.abs(Math.log((p.b.size || 1) / (p.a.size || 1))) > 0.1 || Math.abs(p.b.cy - p.a.cy) > 300 || T.targets.has(p.a);
+  const moved = p => (st.inPlace || first)
+    ? (Math.abs(p.b.cx - p.a.cx) > 250 || Math.abs(p.b.cy - p.a.cy) > 200 || roleChange(p))
+    : roleChange(p);
+  const stable = T.pairs.filter(p => !moved(p)), movers = T.pairs.filter(moved);
+  let t = tAct;
+  if (!st.inPlace && !first) {           // nueva línea: se copia lo estable de izquierda a derecha
+    const xs = stable.map(p => p.b.box.x), x0 = Math.min(...xs, 0), x1 = Math.max(...stable.map(p => p.b.box.x + p.b.box.w), 1);
+    const dur = stable.length ? clamp(0.25 + 0.025 * stable.length, 0.3, 0.7) : 0;
+    for (const p of stable) { const f = (p.b.box.x - x0) / (x1 - x0 || 1); sch.glyph.set(p, { kind: 'copy', s: t + f * dur * 0.75, d: dur * 0.3 }); }
+    for (const p of T.rectPairs) { const f = (p.b.box.x - x0) / (x1 - x0 || 1); sch.rect.set(p, { kind: 'copy', s: t + f * dur * 0.75, d: dur * 0.3 }); }
+    t += dur;
+  } else {
+    for (const p of stable) sch.glyph.set(p, { kind: 'move', s: t, d: 0.5, arc: 0 });
+    for (const p of T.rectPairs) sch.rect.set(p, { kind: 'move', s: t, d: 0.6 });
+  }
+  movers.sort((p, q) => p.a.order - q.a.order);
+  let mEnd = t;
+  movers.forEach((p, i) => {
+    const dist = Math.hypot(p.b.cx - p.a.cx, p.b.cy - p.a.cy) / EM;
+    const d = clamp(0.55 + 0.07 * dist, 0.55, 1.2);
+    const s = t + Math.min(i * 0.035, 0.35);
+    const cross = p.a.side !== p.b.side;
+    const arc = cross || T.targets.has(p.a) ? clamp(0.18 * Math.abs(p.b.cx - p.a.cx), 250, 1100) : 0;
+    sch.glyph.set(p, { kind: 'move', s, d, arc });
+    mEnd = Math.max(mEnd, s + d);
+  });
+  // salidas (solo se ven en el lugar) y raya de cancelación
+  sch.exit = [tAct, 0.45];
+  // entradas: se escriben después de mover
+  const writeStart = movers.length ? t + 0.55 * (mEnd - t) : t;
+  const ents = T.entries.slice().sort((a, b) => (a.box.x - b.box.x) || (a.box.y - b.box.y));
+  const rate = 0.13;
+  ents.forEach((g, i) => sch.glyph.set(g, { kind: 'write', s: writeStart + i * rate, d: 0.24 }));
+  T.rectEntries.forEach(r => { const i = ents.findIndex(g => g.box.x >= r.box.x); sch.rect.set(r, { kind: 'write', s: writeStart + Math.max(0, i) * rate, d: 0.35 }); });
+  let end = Math.max(mEnd, ents.length ? writeStart + (ents.length - 1) * rate + 0.24 : 0, tAct + 0.5);
+  if (first) end = ents.length ? writeStart + (ents.length - 1) * rate + 0.24 : 0.5;
+  if (T.boxPost) { sch.box = [end + 0.15, 0.7]; end += 0.85; }
+  sch.hiOff = end;                      // el resalte se apaga al asentar
+  sch.T = end + 0.25 + 0.6;             // asentar + pausa del compás
+  st.sch = sch;
+}
+
+/* ---------------------------------------------------------------- vista y dibujo */
+const canvas = document.getElementById('board'), ctx = canvas.getContext('2d');
+const ink = document.createElement('canvas'), ictx = ink.getContext('2d');
+let VIEW = { W: 0, H: 0, dpr: 1, s: 0.05, padX: 0, padY: 0, theme: 'pizarron-verde', pairs: false };
+let boardTex = null, grainPat = null;
+
+function makeBoardTexture() {
+  const th = THEMES[VIEW.theme];
+  const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
+  const g = c.getContext('2d');
+  g.fillStyle = th.bg; g.fillRect(0, 0, c.width, c.height);
+  // manchas de borrador: elipses tenues, deterministas
+  for (let i = 0; i < 26; i++) {
+    const x = hash(i * 3 + 1) * c.width, y = hash(i * 3 + 2) * c.height, r = (0.08 + 0.22 * hash(i * 3 + 3)) * Math.max(c.width, c.height);
+    const grd = g.createRadialGradient(x, y, 0, x, y, r);
+    grd.addColorStop(0, VIEW.theme === 'pizarra-blanca' ? 'rgba(120,130,140,0.035)' : 'rgba(255,255,255,0.035)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, c.width, c.height);
+  }
+  boardTex = c;
+  // grano de tiza: puntos que se restan de la tinta
+  const n = document.createElement('canvas'); n.width = n.height = 192; const ng = n.getContext('2d');
+  const img = ng.createImageData(192, 192);
+  for (let i = 0; i < 192 * 192; i++) { const r = hash(i + 7); const a = r > 0.62 ? Math.floor((r - 0.62) / 0.38 * 255 * th.grain) : 0; img.data[i * 4 + 3] = a; }
+  ng.putImageData(img, 0, 0);
+  grainPat = ictx.createPattern(n, 'repeat');
+}
+
+function resize() {
+  const r = canvas.getBoundingClientRect(); const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  VIEW.W = r.width; VIEW.H = r.height; VIEW.dpr = dpr;
+  canvas.width = ink.width = Math.round(r.width * dpr); canvas.height = ink.height = Math.round(r.height * dpr);
+  fitScale(); makeBoardTexture(); requestDraw();
+}
+function fitScale() {
+  if (!DOC || !DOC.layout) return;
+  const L = DOC.layout, padX = Math.max(28, VIEW.W * 0.05);
+  const sW = (VIEW.W - 2 * padX) / (L.left + L.right + 400);
+  const emPx = clamp(VIEW.H / 7.5, 26, 74);
+  VIEW.s = Math.min(sW, emPx / EM);
+  VIEW.padY = Math.max(44, VIEW.H * 0.1);
+  VIEW.relX = VIEW.W / 2 + (L.left - L.right) / 2 * VIEW.s;
+}
+
+// cámara: el último renglón activo queda hacia el 60 % del alto visible
+function camFor(slot) {
+  const L = DOC.layout, s = VIEW.s;
+  const want = L.base[slot] + L.slotExt[slot].maxY;                  // borde inferior del renglón
+  const visibleUnits = (VIEW.H - VIEW.padY * 1.6) / s;
+  const total = L.totalH;
+  const top = L.base[0] + L.slotExt[0].minY;
+  if (total <= visibleUnits) return top - (visibleUnits - total) / 2 + (VIEW.padY * 0.3) / s;   // cabe todo: centrado
+  let cam = want - visibleUnits * 0.8;
+  return clamp(cam, top, top + total - visibleUnits);
+}
+
+function toScreen(x, y, cam) { return [VIEW.relX + x * VIEW.s, VIEW.padY + (y - cam) * VIEW.s]; }
+
+function drawGlyph(g, m, color, alpha, clipFrac, cam, slotY) {
+  if (alpha <= 0) return;
+  const s = VIEW.s, d = VIEW.dpr;
+  ictx.save();
+  ictx.globalAlpha = alpha; ictx.fillStyle = color;
+  if (clipFrac !== undefined && clipFrac < 1) {
+    const [x0, y0] = toScreen(g.box.x + (m[4] - g.m[4]), slotY + g.box.y + (m[5] - g.m[5]) - 120, cam);
+    ictx.beginPath(); ictx.rect(x0 * d, y0 * d, g.box.w * s * d * clipFrac, (g.box.h + 240) * s * d); ictx.clip();
+  }
+  const [ox, oy] = toScreen(0, slotY, cam);
+  ictx.setTransform(d * s * m[0], d * s * m[1], d * s * m[2], d * s * m[3], d * (ox + s * m[4]), d * (oy + s * m[5]));
+  ictx.fill(g.path);
+  ictx.restore();
+}
+function drawRect(box, color, alpha, clipFrac, cam, slotY) {
+  if (alpha <= 0) return;
+  const s = VIEW.s, d = VIEW.dpr;
+  const [x, y] = toScreen(box.x, slotY + box.y, cam);
+  ictx.save(); ictx.globalAlpha = alpha; ictx.fillStyle = color;
+  ictx.fillRect(x * d, y * d, box.w * s * d * (clipFrac ?? 1), Math.max(box.h * s, 1.4) * d);
+  ictx.restore();
+}
+function chalkLine(x0, y0, x1, y1, f, color, widthPx, seed) {
+  if (f <= 0) return;
+  const d = VIEW.dpr, x = lerp(x0, x1, f), y = lerp(y0, y1, f);
+  ictx.save(); ictx.strokeStyle = color; ictx.lineCap = 'round';
+  for (let k = 0; k < 2; k++) {
+    ictx.globalAlpha = k ? 0.55 : 0.9; ictx.lineWidth = widthPx * d * (k ? 1.6 : 1);
+    ictx.beginPath(); ictx.moveTo(x0 * d, (y0 + (hash(seed + k) - 0.5) * 2) * d);
+    ictx.lineTo(x * d, (y + (hash(seed + k + 9) - 0.5) * 2) * d); ictx.stroke();
+  }
+  ictx.restore();
+}
+function tip(x, y, color) { // punta de tiza en el frente de escritura
+  const d = VIEW.dpr; ictx.save(); ictx.globalAlpha = 0.85; ictx.fillStyle = color;
+  ictx.beginPath(); ictx.arc(x * d, y * d, 3.2 * d, 0, Math.PI * 2); ictx.fill(); ictx.restore();
+}
+function mixColor(c1, c2, t) {
+  const p = c => [1, 3, 5].map(i => parseInt(c.slice(i, i + 2), 16));
+  const a = p(c1), b = p(c2); return '#' + a.map((v, i) => Math.round(lerp(v, b[i], t)).toString(16).padStart(2, '0')).join('');
+}
+function unionBox(list) {
+  const x0 = Math.min(...list.map(g => g.box.x)), y0 = Math.min(...list.map(g => g.box.y));
+  const x1 = Math.max(...list.map(g => g.box.x + g.box.w)), y1 = Math.max(...list.map(g => g.box.y + g.box.h));
+  return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+}
+
+// contenido de cada renglón en el paso k (en reposo)
+function slotContents(k) { const m = new Map(); for (let i = 0; i <= k; i++) m.set(DOC.steps[i].slot, i); return m; }
+
+function drawStatic(stepIdx, cam, opts = {}) {
+  const th = THEMES[VIEW.theme], st = DOC.steps[stepIdx], L = DOC.layout, slotY = L.base[st.slot];
+  const hiSet = opts.hi || null, alpha = opts.alpha ?? 1, skip = opts.skip || null;
+  for (const g of st.S.glyphs) { if (skip && skip.has(g)) continue; const c = hiSet && hiSet.has(g) ? th.hi : th.ink; drawGlyph(g, g.m, c, alpha, undefined, cam, slotY); }
+  for (const r of st.S.rects) { if (skip && skip.has(r)) continue; drawRect(r.box, th.ink, alpha, 1, cam, slotY); }
+}
+
+function drawBoxDecor(st, f, cam, alpha = 1) {
+  if (f <= 0) return;
+  const th = THEMES[VIEW.theme], L = DOC.layout, slotY = L.base[st.slot];
+  const b = unionBox(st.S.glyphs.concat(st.S.rects)), pad = 220;
+  const [x0, y0] = toScreen(b.x - pad, slotY + b.y - pad, cam), [x1, y1] = toScreen(b.x + b.w + pad, slotY + b.y + b.h + pad, cam);
+  const segs = [[x0, y0, x1, y0], [x1, y0, x1, y1], [x1, y1, x0, y1], [x0, y1, x0, y0]];
+  const per = [x1 - x0, y1 - y0, x1 - x0, y1 - y0], tot = per.reduce((a, b) => a + b);
+  let acc = 0;
+  ictx.save(); ictx.globalAlpha = alpha;
+  segs.forEach((sg, i) => { const ff = clamp((f * tot - acc) / per[i], 0, 1); chalkLine(...sg, ff, th.box, 2.4, 40 + i); acc += per[i]; });
+  ictx.restore();
+}
+function drawStrikes(list, f, cam, slotY, alpha = 1) {
+  const th = THEMES[VIEW.theme];
+  list.forEach((grp, i) => { if (!grp.length) return; const b = unionBox(grp);
+    const [x0, y0] = toScreen(b.x - 60, slotY + b.y + b.h + 60, cam), [x1, y1] = toScreen(b.x + b.w + 60, slotY + b.y - 60, cam);
+    ictx.save(); ictx.globalAlpha = alpha; chalkLine(x0, y0, x1, y1, f, th.strike, 3, 90 + i); ictx.restore(); });
+}
+
+function frame(k, tau) {
+  // k: paso destino; tau: tiempo virtual dentro de la transición hacia k (0..T)
+  if (!DOC || !DOC.steps.length) return;
+  const th = THEMES[VIEW.theme], L = DOC.layout;
+  const d = VIEW.dpr;
+  ictx.setTransform(1, 0, 0, 1, 0, 0); ictx.clearRect(0, 0, ink.width, ink.height);
+  const st = DOC.steps[k], sch = st.sch, T = st.trans;
+  const prev = k > 0 ? DOC.steps[k - 1] : null;
+  const atRest = tau >= sch.T;
+  // cámara
+  const camTo = camFor(st.slot), camFrom = prev ? camFor(prev.slot) : camTo;
+  const cam = lerp(camFrom, camTo, ease(prog(tau, 0, 0.9)));
+  // renglones anteriores (los que no cambian en esta transición)
+  const contents = slotContents(k - 1 >= 0 ? k - 1 : 0);
+  if (prev) for (const [slot, idx] of contents) {
+    if (slot === st.slot && st.inPlace) continue;     // ese renglón se transforma ahora
+    if (idx === k - 1) continue;                       // el renglón previo se dibuja aparte
+    drawStatic(idx, cam);
+    const s2 = DOC.steps[idx]; if (s2.trans.boxPost) drawBoxDecor(s2, 1, cam);
+    // tachados persistentes
+    for (let j = idx + 1; j <= k - 1; j++) { const sj = DOC.steps[j]; if (DOC.steps[j - 1].slot === slot && !sj.inPlace) drawStrikes(sj.trans.strikes, 1, cam, L.base[slot]); }
+  }
+  const sigOn = tau < sch.hiOff ? prog(tau, sch.sig[0], 0.25) : 1 - prog(tau, sch.hiOff, 0.25);
+  const hiCol = mixColor(th.ink, th.hi, sigOn);
+  const targetsHi = new Set([...T.targets]);
+  if (prev) {
+    const slotA = L.base[prev.slot];
+    if (!st.inPlace) {
+      // renglón previo intacto, con señalar y tachar
+      for (const g of prev.S.glyphs) drawGlyph(g, g.m, targetsHi.has(g) ? hiCol : th.ink, 1, undefined, cam, slotA);
+      for (const r of prev.S.rects) drawRect(r.box, th.ink, 1, 1, cam, slotA);
+      if (prev.trans.boxPost) drawBoxDecor(prev, 1, cam);
+      drawStrikes(T.strikes, prog(tau, sch.strike[0], sch.strike[1]), cam, slotA);
+      // tachados anteriores del mismo renglón
+    } else {
+      // en el lugar: lo que sale se tacha o se borra
+      const fx = prog(tau, sch.exit[0], sch.exit[1]);
+      for (const g of T.exits) drawGlyph(g, g.m, targetsHi.has(g) ? hiCol : th.ink, 1 - fx, undefined, cam, slotA);
+      for (const r of T.rectExits) drawRect(r.box, th.ink, 1 - fx, 1, cam, slotA);
+      drawStrikes(T.strikes, prog(tau, sch.strike[0], sch.strike[1]), cam, slotA, 1 - fx);
+      if (prev.trans.boxPost && !st.decorOnly) drawBoxDecor(prev, 1, cam, 1 - fx);
+      if (prev.trans.boxPost && st.decorOnly) drawBoxDecor(prev, 1, cam);
+    }
+  }
+  // pares
+  const slotB = L.base[st.slot], slotA = prev ? L.base[prev.slot] : slotB;
+  for (const p of T.pairs) {
+    const sc = sch.glyph.get(p); if (!sc) continue;
+    const isT = targetsHi.has(p.a), colB = (T.hiB.has(p.b) && atRest) ? th.hi : (isT ? hiCol : (T.hiB.has(p.b) ? mixColor(th.ink, th.hi, prog(tau, sch.hiOff - 0.3, 0.3)) : th.ink));
+    if (sc.kind === 'copy') {
+      const f = prog(tau, sc.s, sc.d);
+      drawGlyph(p.b, p.b.m, colB, 1, f, cam, slotB);
+      if (f > 0 && f < 1) { const [x, y] = toScreen(p.b.box.x + p.b.box.w * f, slotB + p.b.cy, cam); tip(x, y, th.ink); }
+    } else {
+      const f = ease(prog(tau, sc.s, sc.d));
+      if (!st.inPlace && f <= 0 && prev) continue;     // la copia aún no sale del renglón previo
+      const ya = slotA, yb = slotB;
+      const m = p.a.m.map((v, i) => lerp(v, p.b.m[i], f));
+      // transporte del renglón A al B y arco por encima de la relación
+      const dyLine = lerp(ya, yb, f) - slotB;
+      m[5] += dyLine - (sc.arc ? sc.arc * Math.sin(Math.PI * f) : 0);
+      const g = Object.assign({}, p.b, { m: p.b.m, box: p.b.box });
+      drawGlyph(p.b, m, colB, 1, undefined, cam, slotB);
+    }
+  }
+  for (const p of T.rectPairs) {
+    const sc = sch.rect.get(p); if (!sc) continue;
+    if (sc.kind === 'copy') drawRect(p.b.box, th.ink, 1, prog(tau, sc.s, sc.d), cam, slotB);
+    else { const f = ease(prog(tau, sc.s, sc.d)); const b = { x: lerp(p.a.box.x, p.b.box.x, f), y: lerp(p.a.box.y + slotA, p.b.box.y + slotB, f) - slotB, w: lerp(p.a.box.w, p.b.box.w, f), h: p.b.box.h }; drawRect(b, th.ink, 1, 1, cam, slotB); }
+  }
+  // entradas
+  for (const g of T.entries) {
+    const sc = sch.glyph.get(g); if (!sc) continue;
+    const f = prog(tau, sc.s, sc.d); if (f <= 0) continue;
+    const col = T.hiB.has(g) && tau >= sch.hiOff - 0.3 ? mixColor(th.ink, th.hi, prog(tau, sch.hiOff - 0.3, 0.3)) : th.ink;
+    drawGlyph(g, g.m, col, 1, easeOut(f), cam, slotB);
+    if (f < 1) { const [x, y] = toScreen(g.box.x + g.box.w * easeOut(f), slotB + g.cy, cam); tip(x, y, th.ink); }
+  }
+  for (const r of T.rectEntries) { const sc = sch.rect.get(r); if (sc) drawRect(r.box, th.ink, 1, easeOut(prog(tau, sc.s, sc.d)), cam, slotB); }
+  // decoraciones posteriores
+  if (sch.box) drawBoxDecor(st, prog(tau, sch.box[0], sch.box[1]), cam);
+  // parejas detectadas (vista de inspección)
+  if (VIEW.pairs && prev) {
+    ictx.save(); ictx.lineWidth = 1.2 * d; ictx.setLineDash([4 * d, 4 * d]);
+    T.pairs.forEach((p, i) => {
+      const col = p.via === 'id' ? '#9fd7ff' : p.via === 'accion' ? '#f3d65f' : '#c5b3ff';
+      const [x0, y0] = toScreen(p.a.cx, slotA + p.a.cy, cam), [x1, y1] = toScreen(p.b.cx, slotB + p.b.cy, cam);
+      ictx.strokeStyle = col; ictx.globalAlpha = 0.85; ictx.beginPath(); ictx.moveTo(x0 * d, y0 * d);
+      ictx.quadraticCurveTo(((x0 + x1) / 2) * d, (Math.min(y0, y1) - 26) * d, x1 * d, y1 * d); ictx.stroke();
+    });
+    ictx.setLineDash([]);
+    for (const g of T.exits) { const [x, y] = toScreen(g.cx, slotA + g.cy, cam); ictx.strokeStyle = '#ff8a7a'; ictx.globalAlpha = 0.9; ictx.strokeRect((x - 7) * d, (y - 7) * d, 14 * d, 14 * d); }
+    for (const g of T.entries) { const [x, y] = toScreen(g.cx, slotB + g.cy, cam); ictx.strokeStyle = '#8fe3a8'; ictx.globalAlpha = 0.9; ictx.beginPath(); ictx.arc(x * d, y * d, 8 * d, 0, 7); ictx.stroke(); }
+    ictx.restore();
+  }
+  // grano de tiza y composición
+  if (grainPat) { ictx.save(); ictx.setTransform(1, 0, 0, 1, 0, 0); ictx.globalCompositeOperation = 'destination-out'; ictx.fillStyle = grainPat; ictx.fillRect(0, 0, ink.width, ink.height); ictx.restore(); }
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(boardTex, 0, 0);
+  ctx.drawImage(ink, 0, 0);
+}
+
+/* ---------------------------------------------------------------- reproductor */
+const P = { k: 0, tau: 0, dir: 0, auto: false, speed: 1, last: 0, wait: 0 };
+let rafOn = false, needDraw = false;
+function requestDraw() { needDraw = true; if (!rafOn) { rafOn = true; requestAnimationFrame(tick); } }
+function tick(now) {
+  rafOn = false;
+  const dt = P.last ? Math.min(0.05, (now - P.last) / 1000) : 0; P.last = now;
+  if (DOC && DOC.steps.length) {
+    const st = DOC.steps[P.k];
+    if (P.dir > 0) { P.tau += dt * P.speed; if (P.tau >= st.sch.T) { P.tau = st.sch.T; P.dir = 0; onRest(); } }
+    else if (P.dir < 0) { P.tau -= dt * P.speed * 1.6; if (P.tau <= 0) { P.dir = 0; if (P.k > 0) { P.k--; P.tau = DOC.steps[P.k].sch.T; } else P.tau = 0; onRest(); } }
+    else if (P.auto && P.k < DOC.steps.length - 1) { P.wait += dt * P.speed; if (P.wait > 0.6) { P.wait = 0; next(); } }
+    frame(P.k, P.tau);
+    updateHud();
+  }
+  if (P.dir !== 0 || (P.auto && DOC && P.k < DOC.steps.length - 1) || needDraw) { needDraw = false; rafOn = true; requestAnimationFrame(tick); }
+  else P.last = 0;
+}
+function onRest() { updateCaption(); renderDiag(); if (P.auto && P.k >= DOC.steps.length - 1) setAuto(false); }
+function next() {
+  if (!DOC || !DOC.steps.length) return;
+  const st = DOC.steps[P.k];
+  if (P.dir > 0 || P.tau < st.sch.T) { P.tau = st.sch.T; P.dir = 0; onRest(); requestDraw(); return; }  // completar el paso en curso
+  if (P.k < DOC.steps.length - 1) { P.k++; P.tau = 0; P.dir = 1; updateCaption(); renderDiag(); requestDraw(); wake(); }
+}
+function prev() {
+  if (!DOC || !DOC.steps.length) return;
+  if (P.dir < 0) { P.dir = 0; if (P.k > 0) { P.k--; P.tau = DOC.steps[P.k].sch.T; } onRest(); requestDraw(); return; }
+  if (P.k === 0 && P.tau >= DOC.steps[0].sch.T) { P.tau = 0; P.dir = 1; requestDraw(); return; }
+  P.dir = -1; updateCaption(); requestDraw();
+}
+function restart() { if (!DOC) return; P.k = 0; P.tau = 0; P.dir = 1; updateCaption(); renderDiag(); requestDraw(); }
+function setAuto(on) { P.auto = on; P.wait = 0; $('#bAuto').setAttribute('aria-pressed', on); if (on) { const st = DOC.steps[P.k]; if (P.tau >= st.sch.T) next(); else P.dir = 1; requestDraw(); wake(); } }
+let wakeLock = null;
+async function wake() { try { if (!wakeLock && navigator.wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.addEventListener('release', () => wakeLock = null); } } catch (e) {} }
+
+/* ---------------------------------------------------------------- interfaz */
+function $(s) { return document.querySelector(s); }
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+function updateHud() {
+  if (!DOC || !DOC.steps.length) return;
+  const tot = DOC.steps.reduce((a, s) => a + s.sch.T, 0) / P.speed;
+  $('#hud').textContent = `Paso ${P.k + 1} de ${DOC.steps.length} · duración total ≈ ${tot.toFixed(0)} s a ${P.speed}×`;
+}
+function updateCaption() {
+  if (!DOC || !DOC.steps.length) { $('#capT').textContent = ''; $('#capN').textContent = ''; return; }
+  const st = DOC.steps[P.k];
+  $('#capT').textContent = st.titulo || (P.k === 0 ? (DOC.header.titulo || '') : '');
+  $('#capN').textContent = st.narr.join(' ');
+}
+function renderDiag() {
+  const box = $('#diag');
+  if (!DOC) return;
+  const global = DOC.diags.map(dg => `<span class="msg ${dg.lv}">${dg.code} · línea ${dg.line}: ${esc(dg.msg)}</span>`).join('');
+  if (!DOC.steps.length) { box.innerHTML = global || '<span class="msg E">No hay pasos para animar.</span>'; return; }
+  let html = global ? `<div style="margin-bottom:8px">${global}</div>` : '';
+  html += '<ol>' + DOC.steps.map((s, i) => {
+    const T = s.trans, st = T.stats;
+    const statLine = i === 0 ? `${s.S.glyphs.length} glifos escritos` :
+      (s.decorOnly ? 'solo marcas sobre la línea' :
+      `${T.pairs.length} parejas (id ${st.id}, acción ${st.accion}, auto ${st.auto}) · ${T.exits.length} salen · ${T.entries.length} entran${s.inPlace ? ' · en el lugar' : ''}`);
+    const msgs = s.diags.map(dg => `<span class="msg ${dg.lv}">${dg.code} · línea ${dg.line}: ${esc(dg.msg)}</span>`).join('');
+    return `<li class="${i === P.k ? 'cur' : ''}">${esc(s.titulo || '(sin título)')}<span class="stats">${statLine} · ${s.sch.T.toFixed(1)} s</span>${msgs}</li>`;
+  }).join('') + '</ol>';
+  html += `<p class="keys" style="margin:10px 0 0">Teclas: <kbd>→</kbd> o <kbd>espacio</kbd> avanzar · <kbd>←</kbd> retroceder · <kbd>P</kbd> automático · <kbd>F</kbd> pantalla completa · <kbd>Inicio</kbd> reiniciar. Con <b>Parejas</b>: azul = por \\id, amarillo = por acción, violeta = automática; cuadros rojos salen, círculos verdes entran.</p>`;
+  box.innerHTML = html;
+}
+
+async function apply() {
+  const src = $('#src').value;
+  try { localStorage.setItem('tiza-src', src); } catch (e) {}
+  $('#diag').innerHTML = '<span class="keys">Compilando…</span>';
+  try {
+    DOC = await compile(src, $('#mode').value);
+    if (DOC.header.tema && THEMES[DOC.header.tema] && !themeTouched) { VIEW.theme = DOC.header.tema; $('#theme').value = VIEW.theme; }
+    if (DOC.header.ritmo && !speedTouched) { P.speed = clamp(+DOC.header.ritmo || 1, 0.25, 3); $('#speed').value = P.speed; $('#speedOut').textContent = P.speed + '×'; }
+  } catch (e) { console.error(e); DOC = { header: {}, steps: [], diags: [{ lv: 'E', code: 'E00', line: 0, msg: 'Error interno: ' + e.message }] }; }
+  P.k = 0; P.tau = 0; P.dir = DOC.steps.length ? 1 : 0;
+  fitScale(); makeBoardTexture(); updateCaption(); renderDiag(); requestDraw();
+  window.__TIZA_READY = true;
+}
+
+let themeTouched = false, speedTouched = false;
+function initUI() {
+  const sel = $('#sample');
+  for (const k of Object.keys(SAMPLES)) { const o = document.createElement('option'); o.value = k; o.textContent = SAMPLE_NAMES[k]; sel.appendChild(o); }
+  const o = document.createElement('option'); o.value = 'propio'; o.textContent = 'Mi guion (editado)'; sel.appendChild(o);
+  let saved = null; try { saved = localStorage.getItem('tiza-src'); } catch (e) {}
+  if (saved && !Object.values(SAMPLES).includes(saved)) { $('#src').value = saved; sel.value = 'propio'; } else { $('#src').value = SAMPLES.kepler; sel.value = 'kepler'; }
+  sel.addEventListener('change', () => { if (SAMPLES[sel.value]) { $('#src').value = SAMPLES[sel.value]; themeTouched = false; apply(); } });
+  $('#src').addEventListener('input', () => { sel.value = 'propio'; });
+  $('#bApply').addEventListener('click', apply);
+  $('#bNext').addEventListener('click', next);
+  $('#bPrev').addEventListener('click', prev);
+  $('#bRestart').addEventListener('click', restart);
+  $('#bAuto').addEventListener('click', () => setAuto(!P.auto));
+  $('#bPairs').addEventListener('click', e => { VIEW.pairs = !VIEW.pairs; e.currentTarget.setAttribute('aria-pressed', VIEW.pairs); requestDraw(); });
+  $('#mode').addEventListener('change', apply);
+  $('#theme').addEventListener('change', e => { VIEW.theme = e.target.value; themeTouched = true; makeBoardTexture(); requestDraw(); });
+  $('#speed').addEventListener('input', e => { P.speed = +e.target.value; speedTouched = true; $('#speedOut').textContent = P.speed + '×'; updateHud(); });
+  $('#bFull').addEventListener('click', () => { const w = $('#boardWrap'); (document.fullscreenElement ? document.exitFullscreen() : w.requestFullscreen?.())?.catch?.(() => {}); });
+  canvas.addEventListener('click', next);
+  document.addEventListener('keydown', e => {
+    if (e.target.closest('textarea, input, select')) return;
+    if (['ArrowRight', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
+    else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev(); }
+    else if (e.key === 'Home') { e.preventDefault(); restart(); }
+    else if (e.key.toLowerCase() === 'p') setAuto(!P.auto);
+    else if (e.key.toLowerCase() === 'f') $('#bFull').click();
+  });
+  new ResizeObserver(resize).observe($('#boardWrap'));
+}
+
+/* ---------------------------------------------------------------- arranque */
+mjHost = document.createElement('div');
+mjHost.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;font-size:16px';
+document.body.appendChild(mjHost);
+window.MathJax = {
+  loader: { load: ['[tex]/html'] },
+  tex: { packages: { '[+]': ['html'] } },
+  output: { fontPath: FONT_PATH },
+  svg: { fontCache: 'none' },
+  options: { enableEnrichment: false, enableSpeech: false, enableBraille: false, enableExplorer: false, enableMenu: false },
+  startup: { typeset: false, ready() { MathJax.startup.defaultReady(); MathJax.startup.promise.then(start); } }
+};
+async function start() { $('#loading').hidden = true; initUI(); resize(); await apply(); }
+const mjs = document.createElement('script'); mjs.src = MJ_URL; mjs.async = true;
+mjs.onerror = () => { $('#loading').textContent = 'No se pudo cargar MathJax. Revisa la conexión y recarga la página.'; };
+document.head.appendChild(mjs);
+</script>

@@ -1,0 +1,28 @@
+---
+formato: tiza/0.1
+titulo: Despeje lineal
+pizarra: en-lugar
+prueba:
+  objetivo: pasar con suma y con producto en modo en el lugar
+  cubre: [pasar, suma, producto, en-lugar, recuadro]
+  esperado: ok
+---
+
+## Ecuación inicial
+$$ 3x + 5 = 20 $$
+
+## El 5 pasa restando
+:: pasar 5 der
+$$ 3x = 20 - 5 $$
+
+## Restamos
+$$ 3x = 15 $$
+
+## El 3 pasa dividiendo
+:: pasar 3 der
+$$ x = \frac{15}{3} $$
+
+## Dividimos
+$$ x = 5 $$
+:: recuadro
+> Despejamos x.
