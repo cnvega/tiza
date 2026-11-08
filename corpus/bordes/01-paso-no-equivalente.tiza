@@ -1,0 +1,27 @@
+---
+formato: tiza/0.2
+titulo: Despeje con un error de signo sembrado
+pizarra: lineas
+prueba:
+  objetivo: el verificador CAS marca no-equivalente el paso p2, donde el 4 pasa sumando en vez de restando
+  cubre: [pasar, verificacion, no-equivalente]
+  esperado: ok
+---
+
+## Ecuación inicial
+$$ 2x + 4 = 10 $$
+
+## El 4 pasa al otro lado (con el signo equivocado)
+:: pasar 4 der
+$$ 2x = 10 + 4 $$
+> Error deliberado: el 4 debía pasar restando.
+
+## Sumamos
+$$ 2x = 14 $$
+
+## El 2 pasa dividiendo
+:: pasar 2 der
+$$ x = \frac{14}{2} $$
+
+## Dividimos
+$$ x = 7 $$
