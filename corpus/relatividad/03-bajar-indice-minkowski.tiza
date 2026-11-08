@@ -1,0 +1,34 @@
+---
+formato: tiza/0.2
+titulo: Intervalo con la métrica de Minkowski
+curso: Relatividad especial
+etiquetas: [métrica, Minkowski, intervalo]
+pizarra: lineas
+prueba:
+  objetivo: bajar un índice con la métrica de Minkowski y escribir la suma en componentes
+  cubre: [bajar, sustituir, simplificar, parentesis, indices]
+  esperado: advertencia:W02
+---
+
+## Intervalo como producto de cuadrivectores
+$$ s^2 = x_{\mu} x^{\mu} $$
+
+## Bajamos el índice con la métrica
+:: bajar _\mu
+$$ s^2 = \eta_{\mu\nu} x^{\nu} x^{\mu} $$
+
+## La métrica es diagonal
+$$ s^2 = \eta_{00} \left( x^{0} \right)^2 + \eta_{11} \left( x^{1} \right)^2 + \eta_{22} \left( x^{2} \right)^2 + \eta_{33} \left( x^{3} \right)^2 $$
+> Solo quedan los términos con μ = ν.
+
+## Valores de la métrica
+$$ s^2 = -\left( x^{0} \right)^2 + \left( x^{1} \right)^2 + \left( x^{2} \right)^2 + \left( x^{3} \right)^2 $$
+> η₀₀ = −1 y los otros tres valen 1.
+
+## La componente temporal
+:: sustituir x^{0} = ct
+$$ s^2 = -\left( ct \right)^2 + \left( x^{1} \right)^2 + \left( x^{2} \right)^2 + \left( x^{3} \right)^2 $$
+
+## Desarrollamos el cuadrado
+:: simplificar {\left(ct\right)^2}
+$$ s^2 = -c^2 t^2 + \left( x^{1} \right)^2 + \left( x^{2} \right)^2 + \left( x^{3} \right)^2 $$

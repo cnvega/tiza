@@ -1,0 +1,47 @@
+---
+formato: tiza/0.2
+titulo: Relación energía-momento desde el cuadrimomento
+curso: Relatividad especial
+etiquetas: [cuadrimomento, métrica, Minkowski]
+pizarra: lineas
+supuestos:
+  positivos: [m, c, E]
+  reales: [p, g]
+prueba:
+  objetivo: bajar un índice con la métrica, separar la parte temporal y despejar E²
+  cubre: [bajar, sustituir, pasar, referencia-n, abs, vec, parentesis-aparecen, expandir]
+  esperado: advertencia:W02
+---
+
+## Norma del cuadrimomento
+$$ p_{\mu} p^{\mu} = -m^2 c^2 $$
+> Con signatura (−, +, +, +), la norma del cuadrimomento es −m²c².
+
+## Bajamos el índice con la métrica
+:: bajar _\mu
+$$ g_{\mu\nu} p^{\nu} p^{\mu} = -m^2 c^2 $$
+
+## Métrica de Minkowski
+$$ -\left( p^{0} \right)^2 + \abs{\vec{p}}^2 = -m^2 c^2 $$
+> La métrica es diagonal: solo sobreviven los términos con μ = ν.
+
+## La componente temporal es la energía
+:: sustituir p^{0} = \frac{E}{c}
+$$ -\frac{E^2}{c^2} + \abs{\vec{p}}^2 = -m^2 c^2 $$
+
+## La energía pasa al otro lado
+:: pasar \frac{E^2}{c^2} der
+$$ \abs{\vec{p}}^2 = \frac{E^2}{c^2} - m^2 c^2 $$
+
+## La masa pasa sumando
+:: pasar m^2c^2 izq
+$$ \abs{\vec{p}}^2 + m^2 c^2 = \frac{E^2}{c^2} $$
+
+## c² pasa multiplicando
+:: pasar c^2#2 izq
+$$ \left( \abs{\vec{p}}^2 + m^2 c^2 \right) c^2 = E^2 $$
+
+## Distribuimos
+:: expandir
+$$ \abs{\vec{p}}^2 c^2 + m^2 c^4 = E^2 $$
+> Es la relación entre energía, momento y masa en reposo.
