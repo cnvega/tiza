@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-pruebas = ["pytest>=8"]
+pruebas = ["pytest>=8", "jsonschema>=4"]  # MIT
 
 [project.scripts]
 tiza-verificar = "tiza_verificar.cli:principal"
