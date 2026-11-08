@@ -1,0 +1,57 @@
+{
+  "version": "tiza-verificacion/0.1",
+  "archivo": "corpus/algebra/01-despeje-lineal.tiza",
+  "formato": "tiza/0.1",
+  "pasos": [
+    {
+      "id": "p1",
+      "linea": 11,
+      "estado": "verificado",
+      "metodo": "premisa",
+      "mensaje": "Punto de partida: se acepta sin comparar.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p2",
+      "linea": 14,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "Ecuación multiplicada por una constante distinta de cero.",
+      "factor": "1",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p3",
+      "linea": 18,
+      "estado": "verificado",
+      "metodo": "lados",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p4",
+      "linea": 21,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "Ecuación multiplicada por una constante distinta de cero.",
+      "factor": "\\frac{1}{3}",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p5",
+      "linea": 25,
+      "estado": "verificado",
+      "metodo": "lados",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    }
+  ]
+}

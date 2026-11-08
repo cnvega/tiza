@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cnvega/tiza/esquemas/verificacion.schema.json",
+  "title": "Verificación de un guion (C6)",
+  "description": "Salida del verificador CAS (paquetes/verificar-py): un EstadoVerificacion por paso del guion. Productor: verificar. Consumidores: estudio, exportar, asistente.",
+  "type": "object",
+  "required": ["version", "archivo", "formato", "pasos"],
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "description": "Versión de este contrato.",
+      "const": "tiza-verificacion/0.1"
+    },
+    "archivo": {
+      "description": "Ruta del guion verificado, o null si se verificó un texto en memoria.",
+      "type": ["string", "null"]
+    },
+    "formato": {
+      "description": "Valor de la clave formato del encabezado del guion (tiza/0.1, tiza/0.2).",
+      "type": ["string", "null"]
+    },
+    "pasos": {
+      "description": "Un elemento por paso, en el orden del guion.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/EstadoVerificacion" }
+    }
+  },
+  "$defs": {
+    "EstadoVerificacion": {
+      "type": "object",
+      "required": ["id", "linea", "estado", "metodo", "mensaje", "factor", "condicion", "discrepancia"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "Id del paso, igual que en C2: p + número de paso desde 1.",
+          "type": "string",
+          "pattern": "^p[1-9][0-9]*$"
+        },
+        "linea": {
+          "description": "Línea del ## del paso en el archivo fuente.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "estado": {
+          "description": "verificado: equivalencia demostrada simbólicamente. probable: coincide en todos los puntos de prueba, sin demostración. condicional: válido bajo la condición indicada. no-equivalente: falla; se indica un punto donde difieren. no-verificable: fuera del alcance del verificador (nunca es error).",
+          "enum": ["verificado", "probable", "condicional", "no-equivalente", "no-verificable"]
+        },
+        "metodo": {
+          "description": "premisa: primer paso, se acepta sin comparar. sin-formula: el paso no cambia la fórmula. lados: cada lado de la ecuación se reescribe por separado. factor: (L2 − R2) = k (L1 − R1). sustitucion: se aplicó la sustitución declarada. simbolico: A − B se simplifica a 0. numerico: evaluación en puntos al azar. ninguno: no se pudo aplicar un método.",
+          "enum": ["premisa", "sin-formula", "lados", "factor", "sustitucion", "simbolico", "numerico", "ninguno"]
+        },
+        "mensaje": {
+          "description": "Explicación breve para el docente, en el idioma del guion.",
+          "type": "string"
+        },
+        "factor": {
+          "description": "LaTeX del factor k entre ecuaciones, cuando el método lo calcula.",
+          "type": ["string", "null"]
+        },
+        "condicion": {
+          "description": "LaTeX de la condición de validez (por ejemplo r \\neq 0). Obligatoria si el estado es condicional.",
+          "type": ["string", "null"]
+        },
+        "discrepancia": {
+          "description": "Un punto donde los pasos difieren. Solo con estado no-equivalente, y puede ser null si no se encontró.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/Discrepancia" }]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "estado": { "const": "condicional" } } },
+          "then": { "properties": { "condicion": { "type": "string" } } },
+          "else": { "properties": { "condicion": { "type": "null" } } }
+        },
+        {
+          "if": { "properties": { "estado": { "not": { "const": "no-equivalente" } } } },
+          "then": { "properties": { "discrepancia": { "type": "null" } } }
+        }
+      ]
+    },
+    "Discrepancia": {
+      "type": "object",
+      "required": ["punto", "anterior", "actual"],
+      "additionalProperties": false,
+      "properties": {
+        "punto": {
+          "description": "Valores de los símbolos (nombre de SymPy → número).",
+          "type": "object",
+          "additionalProperties": { "type": "number" }
+        },
+        "anterior": {
+          "description": "Expresiones: valor del paso anterior en el punto. Ecuaciones: residuo L1 − R1 (0 si el punto cumple la ecuación anterior).",
+          "$ref": "#/$defs/Numero"
+        },
+        "actual": {
+          "description": "Igual que anterior, para el paso actual.",
+          "$ref": "#/$defs/Numero"
+        }
+      }
+    },
+    "Numero": {
+      "oneOf": [
+        { "type": "number" },
+        {
+          "type": "object",
+          "required": ["re", "im"],
+          "additionalProperties": false,
+          "properties": { "re": { "type": "number" }, "im": { "type": "number" } }
+        }
+      ]
+    }
+  }
+}
