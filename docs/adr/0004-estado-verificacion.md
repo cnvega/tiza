@@ -1,4 +1,4 @@
-# ADR 0003 — Contrato C6: estado de verificación por paso
+# ADR 0004 — Contrato C6: estado de verificación por paso
 
 - Estado: propuesto (lo aprueba Cris)
 - Fecha: 2026-11-08
@@ -27,7 +27,7 @@ El verificador CAS (W7, `paquetes/verificar-py`) compara cada paso de un guion c
 3. **El primer paso es `verificado` con método `premisa`**: no hay nada con qué compararlo y la interfaz no debe marcarlo como problema. Un paso sin fórmula es `verificado` con método `sin-formula`.
 4. **`no-verificable` nunca es un error**: cubre notación fuera de alcance (operadores, Dirac, tensores, derivadas por ahora) y acciones pendientes (`aproximar`, `derivar`, `integrar`).
 5. **Fórmulas en LaTeX** (`factor`, `condicion`) para que el estudio las componga con MathJax como el resto.
-6. **Tres ejemplos** en `esquemas/ejemplos/verificacion-*.json`, generados con `tiza-verificar` desde `corpus/` (Kepler, despeje lineal y el guion con error sembrado de `corpus/bordes/`).
+6. **Tres ejemplos** en `esquemas/ejemplos/verificacion/<categoria>-<nn>-<slug>.json` (misma convención que C2, PR #20), generados con `tiza-verificar` desde `corpus/` (Kepler, despeje lineal y el guion con error sembrado de `corpus/bordes/`).
 
 ## Consecuencias
 
