@@ -1,0 +1,36 @@
+{
+  "name": "tiza",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.13 <23",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "tipos": "pnpm -r --if-present tipos",
+    "lint": "eslint .",
+    "formato": "prettier --write .",
+    "formato:revisar": "prettier --check .",
+    "test": "pnpm -r --if-present test && pnpm test:scripts",
+    "licencias": "node scripts/revisar-licencias.mjs",
+    "revisar": "pnpm tipos && pnpm lint && pnpm formato:revisar && pnpm test && pnpm licencias",
+    "test:scripts": "node --test \"scripts/*.test.mjs\""
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "5.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "minimatch": "9.0.9"
+    }
+  }
+}
