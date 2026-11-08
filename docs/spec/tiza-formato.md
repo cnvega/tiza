@@ -1,7 +1,7 @@
 # Especificación del formato de guion `.tiza` — versión 0.2
 
 Estado: borrador para el prototipo (F0) y el MVP (F1–F2).
-Cambios respecto de 0.1 (ADR 0002): índices tensoriales, delimitadores con nombre, paquetes de TeX, cinco gestos y cuatro validaciones. Todo guion `tiza/0.1` válido sigue siendo válido.
+Cambios respecto de 0.1 (ADR 0002): índices tensoriales, delimitadores con nombre, paquetes de TeX, cinco gestos y cuatro validaciones (parte para el MVP y parte para la v1.0). Todo guion `tiza/0.1` válido sigue siendo válido.
 Fuente de verdad del formato. Cualquier cambio se hace por PR con una nota de decisión (ADR) y sube la versión.
 
 ---
@@ -226,9 +226,9 @@ Firma: `verbo argumentos…`. `REF` = referencia (sección 6), `LADO` = `izq|der
 | `en-lugar` | `en-lugar` | previa | Este paso transforma la línea actual en vez de escribir una nueva | MVP |
 | `nueva-linea` | `nueva-linea` | previa | Este paso escribe una línea nueva (útil si `pizarra: en-lugar`) | MVP |
 | `renombrar` | `renombrar TEX TEX [REF]` | previa | Transforma en el lugar cada aparición del primer símbolo en el segundo (índices mudos), dentro de REF o en toda la línea | MVP |
-| `contraer` | `contraer REF REF` | previa | Une con un arco el par de índices repetidos y aplica la contracción | MVP |
-| `bajar` | `bajar REF` | previa | El índice baja en arco mientras se escribe la métrica que lo baja | MVP |
-| `subir` | `subir REF` | previa | El índice sube en arco mientras se escribe la métrica inversa | MVP |
+| `contraer` | `contraer REF REF` | previa | Une con un arco el par de índices repetidos y aplica la contracción | v1.0 |
+| `bajar` | `bajar REF` | previa | El índice baja en arco mientras se escribe la métrica que lo baja | v1.0 |
+| `subir` | `subir REF` | previa | El índice sube en arco mientras se escribe la métrica inversa | v1.0 |
 | `intercambiar` | `intercambiar REF REF` | previa | Dos términos o factores cambian de lugar en arcos cruzados (orden de operadores) | MVP |
 | `sustituir` | `sustituir TEX = TEX` | previa | Muestra la igualdad al margen y lleva la expresión a su lugar. Toma el resto de la línea | v1.0 |
 | `expandir` | `expandir [REF]` | previa | Arcos distributivos y escritura término a término | v1.0 |
@@ -274,8 +274,8 @@ Reglas:
 | W03 | advertencia | Paso con más de 60 glifos (legibilidad en proyección) |
 | W04 | advertencia | Más de 12 pasos en un guion (dividir la derivación) |
 | W05 | advertencia | Símbolo usado en el paso que no aparece en `supuestos` cuando hay supuestos declarados |
-| W06 | advertencia | Los índices libres no son los mismos a ambos lados de la ecuación |
-| W07 | advertencia | Un índice aparece más de dos veces en un mismo término |
+| W06 | advertencia | Los índices libres no son los mismos a ambos lados de la ecuación (desde la v1.0) |
+| W07 | advertencia | Un índice aparece más de dos veces en un mismo término (desde la v1.0) |
 | W08 | advertencia | Paquete `physics` activo: `\div`, `\dd` y otros comandos cambian de significado |
 
 Los mensajes indican archivo, línea y columna.

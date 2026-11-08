@@ -34,26 +34,28 @@ Ningún paso produjo errores de composición. El emparejamiento automático dist
 3. **Macros de delimitadores** propias de Tiza: `\comm{A}{B}` → [A, B], `\acomm{A}{B}` → {A, B}, `\expval{A}` → ⟨A⟩, `\abs{x}` → |x|, `\norm{x}` → ‖x‖. Se ajustan solas al alto del contenido. Coinciden en nombre y significado con las de `physics`, para que un guion se pueda llevar a LaTeX.
 4. **`\tensor{base}{índices}`** para índices escalonados, con la sintaxis del paquete `tensor` de LaTeX: `\tensor{T}{^\mu_\nu}` produce T^μ{}_ν. Tiza lo expande antes de componer.
 5. **Referencias con posición:** `^\mu` y `_\mu` limitan una referencia a índices superiores o inferiores.
-6. **Cinco gestos nuevos, en el MVP:**
+6. **Cinco gestos nuevos.** `renombrar` e `intercambiar` entran al MVP; `contraer`, `bajar` y `subir`, a la v1.0 (decisión de Cris del 2026-11-07):
 
-   | Gesto | Qué hace en la pizarra |
-   | --- | --- |
-   | `renombrar A B` | Transforma en el lugar cada A del término indicado (o de toda la línea) en B, sin borrar |
-   | `contraer REF REF` | Une con un arco el par de índices repetidos y luego aplica la contracción |
-   | `bajar REF` / `subir REF` | El índice baja o sube en arco mientras se escribe la métrica que lo hace |
-   | `intercambiar REF REF` | Dos términos o factores cambian de lugar en arcos cruzados (orden de operadores) |
+   | Gesto | Qué hace en la pizarra | Entrega |
+   | --- | --- | --- |
+   | `renombrar A B` | Transforma en el lugar cada A del término indicado (o de toda la línea) en B, sin borrar | MVP |
+   | `intercambiar REF REF` | Dos términos o factores cambian de lugar en arcos cruzados (orden de operadores) | MVP |
+   | `contraer REF REF` | Une con un arco el par de índices repetidos y luego aplica la contracción | v1.0 |
+   | `bajar REF` / `subir REF` | El índice baja o sube en arco mientras se escribe la métrica que lo hace | v1.0 |
 
-7. **Validaciones nuevas:** E13 (`\left` y `\right` sin pareja), W06 (índices libres distintos en los dos lados de una ecuación), W07 (un índice repetido más de dos veces en un término) y W08 (paquete `physics` activo).
+   Mientras un gesto no esté implementado, el paso usa la transición automática (W02). La prueba de factibilidad mostró que bajar un índice ya se ve razonable así.
+
+7. **Validaciones nuevas:** E13 (`\left` y `\right` sin pareja) y W08 (paquete `physics` activo) en el MVP; W06 (índices libres distintos en los dos lados) y W07 (un índice repetido más de dos veces en un término) en la v1.0, porque requieren el análisis estructural de índices.
 
 ## Consecuencias
 
 - **C3 (glifos), cuando W0 lo defina,** debe incluir la posición de índice de cada glifo (`indice: sup | sub | null`, tomada del árbol MathML) y tratar los delimitadores estirables como piezas que se escalan en alto, no como glifos que viajan.
 - **Verificación (C6):** los pasos con índices abstractos quedan `no-verificable` en la v1.0, salvo que se escriban en componentes. Los conmutadores de operadores se pueden verificar con `sympy.physics.quantum` (símbolos no conmutativos). Cadabra, el CAS de referencia para tensores, queda excluido por D12 (licencia GPL).
-- **Plazo:** los cinco gestos y las validaciones W06 y W07 agregan alrededor de 1,5 semanas a F1 (núcleo) y F3 (validación en el estudio). El MVP pasaría del 19 de febrero al 2 de marzo de 2027, aún antes del inicio de clases si el semestre parte en marzo. Alternativa: dejar `bajar`, `subir` y `contraer` para la v1.0 y mantener el 19 de febrero.
+- **Plazo:** el MVP se mantiene para el 19 de febrero de 2027. La notación (5.2, 5.3), `renombrar`, `intercambiar`, E13 y W08 caben en F1 sin mover la fecha. `contraer`, `bajar`, `subir`, W06 y W07 suman cerca de una semana a la v1.0 (F3).
 - **Corpus:** la matriz de cobertura suma casos de cuántica y relatividad.
 
 ## Alternativas descartadas
 
 - **`physics` activo por defecto:** cubre bra-ket, conmutadores y derivadas, pero rompe `\div` y otros comandos en guiones de álgebra.
 - **Solo índices con `{}` explícitas, sin `\tensor`:** funciona, pero es incómodo de escribir y fácil de equivocar en tensores de cuatro índices.
-- **Gestos tensoriales solo en la v1.0:** abarata el MVP, pero la primera versión no serviría para una clase de relatividad.
+- **Los cinco gestos en el MVP:** dejaba lista la primera versión para relatividad, pero corría el MVP al 2 de marzo de 2027. Cris prefirió mantener la fecha.
