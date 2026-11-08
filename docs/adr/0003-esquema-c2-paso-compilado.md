@@ -34,7 +34,8 @@ La sección 9 de la especificación resume el `PasoCompilado` con un ejemplo y r
    | `de`, `a` (lados del primer `=`) | `sustituir` |
    | `tex` (resto de la línea) | `ambos-lados` |
    | `variable` [+ `desde` y `hasta`, juntos] | `derivar`, `integrar` |
-   | `texto` [+ `lado`, por omisión `der`] | `aproximar`, `nota` |
+   | `texto` | `aproximar` |
+   | `texto` + `lado` (ya resuelto; por omisión `der`) | `nota` |
    | `segundos` | `pausa` |
    | — | `columna` |
 
