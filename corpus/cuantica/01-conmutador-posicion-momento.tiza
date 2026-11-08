@@ -1,0 +1,44 @@
+---
+formato: tiza/0.2
+titulo: Conmutador de posición y momento
+curso: Mecánica cuántica
+etiquetas: [conmutador, operadores]
+pizarra: lineas
+prueba:
+  objetivo: conmutador [x̂, p̂] aplicado a una función de prueba, con sustitución, regla del producto, cancelación e intercambio de operadores
+  cubre: [comm, sustituir, cancelar, id, parentesis-ajustados, intercambiar, recuadro]
+  esperado: advertencia:W02
+---
+
+## Definición del conmutador
+$$ \comm{\hat{x}}{\hat{p}} f = \hat{x}\hat{p} f - \hat{p}\hat{x} f $$
+> Aplicamos el conmutador a una función de prueba f.
+
+## Posición en su propia representación
+:: sustituir \hat{x} = x
+$$ \comm{\hat{x}}{\hat{p}} f = x \hat{p} f - \hat{p}\left( x f \right) $$
+> En la representación de posición, x̂ solo multiplica por x.
+
+## Momento como derivada
+:: sustituir \hat{p} = -i\hbar \frac{d}{dx}
+$$ \comm{\hat{x}}{\hat{p}} f = -i\hbar\, x \frac{df}{dx} + i\hbar \frac{d}{dx}\left( x f \right) $$
+
+## Regla del producto
+$$ \comm{\hat{x}}{\hat{p}} f = -i\hbar\, x \frac{df}{dx} + i\hbar \left( f + x \frac{df}{dx} \right) $$
+
+## Distribuimos
+$$ \comm{\hat{x}}{\hat{p}} f = \id{a}{-i\hbar\, x \frac{df}{dx}} + i\hbar f + \id{b}{i\hbar\, x \frac{df}{dx}} $$
+
+## Los términos con la derivada se cancelan
+:: cancelar a b
+$$ \comm{\hat{x}}{\hat{p}} f = i\hbar f $$
+
+## Vale para toda f
+$$ \comm{\hat{x}}{\hat{p}} = i\hbar $$
+:: recuadro
+> Como la igualdad vale para cualquier función, la escribimos entre operadores.
+
+## Al revés cambia el signo
+:: intercambiar \hat{x} \hat{p}
+$$ \comm{\hat{p}}{\hat{x}} = -i\hbar $$
+> Intercambiar los operadores en el conmutador cambia su signo.

@@ -1,0 +1,32 @@
+---
+formato: tiza/0.2
+titulo: Valor esperado de la energía con la identidad
+curso: Mecánica cuántica
+etiquetas: [Dirac, valor esperado, identidad]
+pizarra: lineas
+prueba:
+  objetivo: valor esperado con bra-ket, inserción de la identidad y autovalores
+  cubre: [expval, braket, middle, suma, abs, resaltar, recuadro]
+  esperado: advertencia:W02
+---
+
+## Valor esperado
+$$ \expval{\hat{H}} = \left\langle \psi \middle| \hat{H} \middle| \psi \right\rangle $$
+> Partimos del valor esperado del hamiltoniano en el estado ψ.
+
+## Insertamos la identidad
+$$ \expval{\hat{H}} = \sum_n \braket{\psi | \hat{H} | n} \braket{n | \psi} $$
+> Escribimos la identidad como la suma de proyectores sobre los autoestados de Ĥ.
+
+## Autovalores de la energía
+:: resaltar \hat{H}
+$$ \expval{\hat{H}} = \sum_n E_n \braket{\psi | n} \braket{n | \psi} $$
+> Ĥ actúa sobre su autoestado y deja el número E_n.
+
+## Conjugado del producto interno
+$$ \expval{\hat{H}} = \sum_n E_n \braket{n | \psi}^* \braket{n | \psi} $$
+
+## Módulo al cuadrado
+$$ \expval{\hat{H}} = \sum_n E_n \abs{\braket{n | \psi}}^2 $$
+:: recuadro
+> Cada energía pesa con la probabilidad de medirla.

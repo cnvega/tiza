@@ -1,0 +1,29 @@
+---
+formato: tiza/0.2
+titulo: Anticonmutador de dos matrices de Pauli
+curso: Mecánica cuántica
+etiquetas: [espín, Pauli, anticonmutador]
+pizarra: en-lugar
+prueba:
+  objetivo: anticonmutador con llaves ajustadas que desaparecen y productos de matrices sustituidos
+  cubre: [acomm, llaves-ajustadas, sustituir, cancelar, id, en-lugar]
+  esperado: advertencia:W02
+---
+
+## Definición del anticonmutador
+$$ \acomm{\sigma_x}{\sigma_y} = \sigma_x \sigma_y + \sigma_y \sigma_x $$
+> El anticonmutador suma los dos órdenes del producto.
+
+## Primer producto
+:: sustituir \sigma_x \sigma_y = i\sigma_z
+$$ \acomm{\sigma_x}{\sigma_y} = i\sigma_z + \sigma_y \sigma_x $$
+
+## Segundo producto
+:: sustituir \sigma_y \sigma_x = -i\sigma_z
+$$ \acomm{\sigma_x}{\sigma_y} = \id{a}{i\sigma_z} \id{b}{- i\sigma_z} $$
+> En el orden inverso aparece el signo contrario.
+
+## Se cancelan
+:: cancelar a b
+$$ \acomm{\sigma_x}{\sigma_y} = 0 $$
+> Las matrices de Pauli distintas anticonmutan.
