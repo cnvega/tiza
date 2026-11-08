@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>Prototipo Tiza</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,6 +35,7 @@ body { background: var(--bg); color: var(--fg); font-family: var(--font-ui); fon
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
 header h1 { font-size: 17px; margin: 0; letter-spacing: .01em; }
 header h1 span { color: var(--muted); font-weight: 400; }
+.srclink { font-size: 13px; color: var(--accent); }
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-left: auto; }
 button, select { font: inherit; font-size: 14px; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; cursor: pointer; }
 button:hover { border-color: var(--accent); }
@@ -79,6 +81,7 @@ kbd { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--li
 <div class="app">
   <header>
     <h1>Tiza <span>· prototipo F0</span></h1>
+    <a class="srclink" href="https://github.com/cnvega/tiza" target="_blank" rel="noopener">Código fuente (AGPL-3.0)</a>
     <div class="controls">
       <button id="bPrev" title="Paso anterior (←)">◀ Atrás</button>
       <button id="bNext" class="primary" title="Siguiente paso (→, espacio, clic en la pizarra)">Siguiente ▶</button>
@@ -239,17 +242,59 @@ $$ x = 5 $$
 > Despejamos x.
 `
 };
-const SAMPLE_NAMES = { kepler: 'Tercera ley de Kepler', caida: 'Caída libre desde el reposo', despeje: 'Despeje lineal (en el lugar)' };
+SAMPLES.conmutador = String.raw`---
+formato: tiza/0.2
+titulo: Conmutador de posición y momento
+---
+
+## Definición del conmutador
+$$ \comm{\hat{x}}{\hat{p}} f = \hat{x}\hat{p} f - \hat{p}\hat{x} f $$
+
+## Momento en representación de posición
+:: sustituir \hat{p} = -i\hbar \frac{d}{dx}
+$$ \comm{\hat{x}}{\hat{p}} f = -i\hbar\, x \frac{df}{dx} + i\hbar \frac{d}{dx}\left( x f \right) $$
+
+## Regla del producto
+$$ \comm{\hat{x}}{\hat{p}} f = -i\hbar\, x \frac{df}{dx} + i\hbar \left( f + x \frac{df}{dx} \right) $$
+
+## Distribuimos
+$$ \comm{\hat{x}}{\hat{p}} f = \id{a}{-i\hbar\, x \frac{df}{dx}} + i\hbar f \id{b}{+ i\hbar\, x \frac{df}{dx}} $$
+
+## Se cancelan
+:: cancelar a b
+$$ \comm{\hat{x}}{\hat{p}} f = i\hbar f $$
+:: recuadro
+`;
+SAMPLES.covariante = String.raw`---
+formato: tiza/0.2
+titulo: Derivada covariante de un tensor mixto
+---
+
+## Conservación
+$$ \nabla_{\mu} \tensor{T}{^\mu_\nu} = 0 $$
+
+## Expandimos la derivada covariante
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\lambda}} \tensor{T}{^\lambda_\nu} - \tensor{\Gamma}{^\lambda_{\mu\nu}} \tensor{T}{^\mu_\lambda} = 0 $$
+
+## Renombramos el índice mudo
+:: renombrar \lambda \sigma
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\sigma}} \tensor{T}{^\sigma_\nu} - \tensor{\Gamma}{^\sigma_{\mu\nu}} \tensor{T}{^\mu_\sigma} = 0 $$
+`;
+const SAMPLE_NAMES = { kepler: 'Tercera ley de Kepler', caida: 'Caída libre desde el reposo', despeje: 'Despeje lineal (en el lugar)',
+  conmutador: 'Conmutador [x̂, p̂] (cuántica)', covariante: 'Derivada covariante (relatividad)' };
 
 /* ---------------------------------------------------------------- constantes */
 const VERBS = {
   pasar: { impl: true }, cancelar: { impl: true }, resaltar: { impl: true }, pausa: { impl: true },
   recuadro: { impl: true }, 'en-lugar': { impl: true }, 'nueva-linea': { impl: true },
+  renombrar: { impl: true }, intercambiar: { impl: true },
+  contraer: { impl: false }, bajar: { impl: false }, subir: { impl: false },
   borrar: { impl: false }, sustituir: { impl: false, rest: true }, expandir: { impl: false },
   factorizar: { impl: false }, simplificar: { impl: false }, 'ambos-lados': { impl: false, rest: true },
   derivar: { impl: false }, integrar: { impl: false }, aproximar: { impl: false }, nota: { impl: false },
   llave: { impl: false }, flecha: { impl: false }, columna: { impl: false }
 };
+const FORMATS = ['tiza/0.1', 'tiza/0.2'];
 const TRANSFORM_VERBS = new Set(['pasar','cancelar','sustituir','expandir','factorizar','simplificar','ambos-lados','derivar','integrar']);
 const RELATIONS = new Set([0x3D, 0x2248, 0x3C, 0x3E, 0x2264, 0x2265, 0x2260, 0x221D]);
 const INVISIBLE = new Set([0x2061, 0x2062, 0x2063, 0x2064, 0x200B]);
@@ -299,8 +344,14 @@ function parseAction(text, line, diags) {
     const ref = act.args.find(a => a !== lado);
     if (!lado || !ref) { diags.push({ lv: 'E', code: 'E08', line, msg: 'pasar necesita un término y un lado (izq o der)' }); return null; }
     act.lado = lado.v; act.refs = [ref.v];
-  } else if (['cancelar', 'resaltar', 'recuadro'].includes(verbo)) {
+  } else if (['cancelar', 'resaltar', 'recuadro', 'contraer', 'bajar', 'subir'].includes(verbo)) {
     act.refs = act.args.map(a => a.v);
+  } else if (verbo === 'intercambiar') {
+    if (act.args.length !== 2) { diags.push({ lv: 'E', code: 'E08', line, msg: 'intercambiar necesita dos términos' }); return null; }
+    act.refs = act.args.map(a => a.v);
+  } else if (verbo === 'renombrar') {
+    if (act.args.length < 2 || act.args.length > 3) { diags.push({ lv: 'E', code: 'E08', line, msg: 'renombrar necesita dos símbolos y, opcionalmente, una referencia' }); return null; }
+    act.de = act.args[0].v; act.a = act.args[1].v; act.refs = act.args.slice(2).map(a => a.v);
   } else if (verbo === 'pausa') {
     act.seg = parseFloat(act.args[0]?.v); if (!(act.seg >= 0)) { diags.push({ lv: 'E', code: 'E08', line, msg: 'pausa necesita segundos' }); return null; }
   }
@@ -317,10 +368,16 @@ function parseTiza(src) {
   let header = {};
   try { header = jsyaml.load(lines.slice(1, end).join('\n')) || {}; } catch (e) { diags.push({ lv: 'E', code: 'E01', line: 2, msg: 'YAML inválido: ' + e.reason }); }
   if (!header.formato) diags.push({ lv: 'E', code: 'E01', line: 1, msg: 'Falta la clave formato' });
-  else if (header.formato !== 'tiza/0.1') diags.push({ lv: 'E', code: 'E02', line: 2, msg: 'formato debe ser tiza/0.1' });
+  else if (!FORMATS.includes(header.formato)) diags.push({ lv: 'E', code: 'E02', line: 2, msg: 'formato debe ser tiza/0.1 o tiza/0.2' });
   if (!header.titulo) diags.push({ lv: 'E', code: 'E03', line: 2, msg: 'Falta titulo' });
-  const KNOWN = ['formato','titulo','curso','etiquetas','tema','ritmo','pizarra','alinear','idioma','macros','supuestos','prueba'];
+  const KNOWN = ['formato','titulo','curso','etiquetas','tema','ritmo','pizarra','alinear','idioma','paquetes','macros','supuestos','prueba'];
   for (const k of Object.keys(header)) if (!KNOWN.includes(k)) diags.push({ lv: 'W', code: 'W01', line: 2, msg: `Clave desconocida «${k}»` });
+  // paquetes de TeX (ADR 0002): AMS y braket siempre; physics solo a pedido
+  const pkLine = lines.findIndex(l => /^paquetes\s*:/.test(l)) + 1 || 2;
+  const paquetes = header.paquetes == null ? [] : (Array.isArray(header.paquetes) ? header.paquetes.map(String) : [String(header.paquetes)]);
+  for (const p of paquetes) if (p !== 'physics') diags.push({ lv: 'W', code: 'W01', line: pkLine, msg: `Paquete desconocido «${p}»: se ignora` });
+  header.physics = paquetes.includes('physics');
+  if (header.physics) diags.push({ lv: 'W', code: 'W08', line: pkLine, msg: 'Paquete physics activo: \\div, \\dd y otros comandos cambian de significado' });
 
   const steps = []; let cur = null, inFormula = null;
   for (let i = end + 1; i < lines.length; i++) {
@@ -351,13 +408,65 @@ function parseTiza(src) {
   if (!steps.length || steps[0].latex === null) diags.push({ lv: 'E', code: 'E04', line: end + 2, msg: 'El primer paso debe tener fórmula' });
   if (steps[0]) for (const c of steps[0].pre) for (const a of c) if (TRANSFORM_VERBS.has(a.verbo)) diags.push({ lv: 'E', code: 'E12', line: a.line, msg: 'El primer paso no puede transformar' });
   for (const s of steps) if (s.latex && /\\begin|\\\\|&/.test(s.latex)) diags.push({ lv: 'E', code: 'E07', line: s.line, msg: 'Construcción no admitida en v0.1 (entornos, \\\\ o &)' });
+  for (const s of steps) if (s.latex) {
+    const nl = (s.latex.match(/\\left(?![A-Za-z])/g) || []).length, nr = (s.latex.match(/\\right(?![A-Za-z])/g) || []).length;
+    if (nl !== nr) diags.push({ lv: 'E', code: 'E13', line: s.line, msg: `\\left y \\right sin pareja (${nl} \\left, ${nr} \\right)` });
+  }
   if (steps.length > 12) diags.push({ lv: 'W', code: 'W04', line: steps[12].line, msg: 'Más de 12 pasos: conviene dividir la derivación' });
   return { header, steps, diags };
 }
 
 /* ---------------------------------------------------------------- MathJax → glifos */
 let mjHost;
-function texPrep(tex) { return tex.replace(/\\id\{([a-z][a-z0-9-]*)\}/g, '\\cssId{tz-$1}'); }
+// Macros de Tiza (tiza/0.2): delimitadores con nombre para mecánica cuántica y análisis
+const TIZA_MACROS = {
+  comm:   ['\\left[ #1, #2 \\right]', 2],
+  acomm:  ['\\left\\{ #1, #2 \\right\\}', 2],
+  expval: ['\\left\\langle #1 \\right\\rangle', 1],
+  abs:    ['\\left\\lvert #1 \\right\\rvert', 1],
+  norm:   ['\\left\\lVert #1 \\right\\rVert', 1]
+};
+// lee un grupo {…} balanceado desde la posición i (que apunta a «{»); devuelve [contenido, fin]
+function readGroup(s, i) { let d = 0; for (let j = i; j < s.length; j++) { if (s[j] === '\\') { j++; continue; } if (s[j] === '{') d++; else if (s[j] === '}') { d--; if (!d) return [s.slice(i + 1, j), j + 1]; } } return [s.slice(i + 1), s.length]; }
+// lee un índice: {grupo}, \comando o un carácter
+function readToken(s, i) { if (s[i] === '{') { const [g, e] = readGroup(s, i); return [g, e]; } if (s[i] === '\\') { let j = i + 1; while (j < s.length && /[A-Za-z]/.test(s[j])) j++; if (j === i + 1) j++; return [s.slice(i, j), j]; } return [s[i], i + 1]; }
+// \tensor{T}{^\mu_\nu} → {T}^{\mu}{}_{\nu}: índices escalonados, igual que el paquete tensor de LaTeX
+function expandTensor(tex) {
+  let out = '', i = 0;
+  while (i < tex.length) {
+    if (tex.startsWith('\\tensor', i) && !/[A-Za-z]/.test(tex[i + 7] || '')) {
+      let j = i + 7; while (tex[j] === ' ') j++;
+      const [base, e1] = readToken(tex, j); j = e1; while (tex[j] === ' ') j++;
+      const [idx, e2] = tex[j] === '{' ? readGroup(tex, j) : ['', j];
+      const groups = []; let k = 0;
+      while (k < idx.length) {
+        const c = idx[k]; if (c === ' ') { k++; continue; }
+        if (c !== '^' && c !== '_') { k++; continue; }
+        let p = k + 1; while (idx[p] === ' ') p++;
+        const [tok, e] = readToken(idx, p);
+        const last = groups[groups.length - 1];
+        if (last && last.pos === c) last.items.push(tok); else groups.push({ pos: c, items: [tok] });
+        k = e;
+      }
+      out += '{' + expandTensor(base) + '}' + groups.map((g, n) => (n ? '{}' : '') + g.pos + '{' + g.items.map(expandTensor).join(' ') + '}').join('');
+      i = e2; continue;
+    }
+    out += tex[i++];
+  }
+  return out;
+}
+function texPrep(tex) { return expandTensor(tex).replace(/\\id\{([a-z][a-z0-9-]*)\}/g, '\\cssId{tz-$1}'); }
+
+// physics se activa por guion: se reconstruye la entrada TeX de MathJax solo si cambia.
+// Con physics se quita braket, porque physics define su propio \braket de dos argumentos.
+let PHYSICS_ON = false;
+function ensurePackages(physics) {
+  if (physics === PHYSICS_ON) return;
+  const base = MathJax.config.tex.packages.filter(p => p !== 'physics' && p !== 'braket');
+  MathJax.config.tex.packages = base.concat(physics ? ['physics'] : ['braket']);
+  MathJax.startup.getComponents();
+  PHYSICS_ON = physics; fragCache.clear();
+}
 
 async function typeset(tex) {
   const node = await MathJax.tex2svgPromise(texPrep(tex), { display: true });
@@ -378,19 +487,25 @@ async function typeset(tex) {
         .map(([x, y]) => [m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]);
       const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
       const box = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
-      const ids = []; let top = true, relCandidate = false;
-      for (let p = el.parentElement; p && p !== svg; p = p.parentElement) {
+      const ids = []; let top = true, pos = null;
+      for (let c = el, p = el.parentElement; p && p !== svg; c = p, p = p.parentElement) {
         if (p.id && p.id.startsWith('tz-')) ids.push(p.id.slice(3));
         const node = p.getAttribute('data-mml-node');
         if (node && SCRIPTED.has(node)) top = false;
+        // posición de índice: el ancestro de índices más cercano en el que el glifo no está en la base.
+        // En el SVG de MathJax los hijos van como base, superíndice, subíndice (msubsup) o base, índice.
+        if (!pos && (node === 'msup' || node === 'msub' || node === 'msubsup')) {
+          const idx = Array.prototype.indexOf.call(p.children, c);
+          if (idx > 0) pos = node === 'msup' ? '^' : node === 'msub' ? '_' : (idx === 1 ? '^' : '_');
+        }
       }
       if (el.tagName === 'rect') {
-        rects.push({ kind: 'rect', box, ids, top, ch: -1 });
+        rects.push({ kind: 'rect', box, ids, top, pos, ch: -1 });
         continue;
       }
       const d = el.getAttribute('d'); const ch = parseInt(el.getAttribute('data-c') || '0', 16);
       if (!d || INVISIBLE.has(ch) || box.w === 0) continue;
-      glyphs.push({ kind: 'glyph', ch, d, m: [m.a, m.b, m.c, m.d, m.e, m.f], box, ids, top, order: order++ });
+      glyphs.push({ kind: 'glyph', ch, d, m: [m.a, m.b, m.c, m.d, m.e, m.f], box, ids, top, pos, order: order++ });
     }
     // relación principal: primer símbolo de relación fuera de fracciones o índices
     const rel = glyphs.find(g => g.top && RELATIONS.has(g.ch));
@@ -422,25 +537,40 @@ async function fragmentChars(tex) {
 }
 
 /* ---------------------------------------------------------------- referencias */
-async function resolveRef(ref, glyphs, opts = {}) {
-  // devuelve { list: [glifos], ambiguous, missing }
-  if (/^[a-z][a-z0-9-]*$/.test(ref) && glyphs.some(g => g.ids.includes(ref))) {
-    return { list: glyphs.filter(g => g.ids.includes(ref)) };
-  }
-  let nth = 0, tex = ref;
-  const mm = ref.match(/^(.*)#(\d+)$/); if (mm) { tex = mm[1]; nth = parseInt(mm[2], 10); }
-  const seq = await fragmentChars(tex);
-  if (!seq || !seq.length) return { list: [], missing: true };
-  const pool = opts.side ? glyphs.filter(g => g.side === opts.side) : glyphs;
+// todas las apariciones de una secuencia de caracteres en pool (en orden de pool)
+function findSeq(seq, pool) {
   const hits = [];
   for (let i = 0; i + seq.length <= pool.length; i++) {
     let ok = true; for (let j = 0; j < seq.length; j++) if (pool[i + j].ch !== seq[j]) { ok = false; break; }
     if (ok) hits.push(pool.slice(i, i + seq.length));
   }
-  if (!hits.length) return { list: [], missing: true };
-  if (nth) return { list: hits[nth - 1] || [], missing: !hits[nth - 1] };
-  return { list: hits[0], ambiguous: hits.length > 1 };
+  return hits;
 }
+// separa «^\mu#2» en { pos: '^', tex: '\mu', nth: 2 }
+function splitRef(ref) {
+  let pos = null, nth = 0, tex = ref;
+  const mp = tex.match(/^([\^_])(.+)$/); if (mp) { pos = mp[1]; tex = mp[2]; }
+  const mm = tex.match(/^(.*)#(\d+)$/); if (mm) { tex = mm[1]; nth = parseInt(mm[2], 10); }
+  if (/^\{.*\}$/.test(tex)) tex = tex.slice(1, -1);
+  return { pos, tex, nth };
+}
+async function resolveRef(ref, glyphs, opts = {}) {
+  // devuelve { list: [glifos], hits: [[glifos]…], ambiguous, missing }
+  if (/^[a-z][a-z0-9-]*$/.test(ref) && glyphs.some(g => g.ids.includes(ref))) {
+    const list = glyphs.filter(g => g.ids.includes(ref));
+    return { list, hits: [list] };
+  }
+  const { pos, tex, nth } = splitRef(ref);
+  const seq = await fragmentChars(tex);
+  if (!seq || !seq.length) return { list: [], hits: [], missing: true };
+  let pool = opts.side ? glyphs.filter(g => g.side === opts.side) : glyphs;
+  if (pos) pool = pool.filter(g => g.pos === pos);   // referencia con posición: solo índices ^ o _
+  const hits = findSeq(seq, pool);
+  if (!hits.length) return { list: [], hits, missing: true };
+  if (nth) return { list: hits[nth - 1] || [], hits, missing: !hits[nth - 1] };
+  return { list: hits[0], hits, ambiguous: hits.length > 1 };
+}
+const centerOf = list => { const b = unionBox(list); return [b.x + b.w / 2, b.y + b.h / 2]; };
 
 /* ---------------------------------------------------------------- asignación (húngaro) */
 function hungarian(C) {
@@ -492,7 +622,7 @@ async function matchSteps(SA, SB, step, diags) {
   const A = SA.glyphs, B = SB.glyphs;
   const usedA = new Set(), usedB = new Set(), pairs = [];
   const stats = { id: 0, accion: 0, auto: 0 };
-  const push = (a, b, via) => { if (usedA.has(a) || usedB.has(b)) return; usedA.add(a); usedB.add(b); pairs.push({ a, b, via }); stats[via]++; };
+  const push = (a, b, via, extra) => { if (usedA.has(a) || usedB.has(b)) return null; usedA.add(a); usedB.add(b); const p = Object.assign({ a, b, via }, extra); pairs.push(p); stats[via]++; return p; };
   const forcedExit = new Set(), targets = new Set(), strikes = [], hiB = new Set();
   let boxPost = false, pause = 0;
 
@@ -515,7 +645,59 @@ async function matchSteps(SA, SB, step, diags) {
       act._a = ra.list;
     } else if (act.verbo === 'resaltar') {
       for (const r of act.refs) { const res = await resolveRef(r, A); if (res.missing) diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${r}»` }); else res.list.forEach(g => targets.add(g)); }
+    } else if (act.verbo === 'intercambiar') {
+      act._a = [];
+      for (const r of act.refs) {
+        const res = await resolveRef(r, A);
+        if (res.missing) { diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${r}» en el paso anterior` }); act._a = null; break; }
+        if (res.ambiguous) diags.push({ lv: 'E', code: 'E10', line: act.line, msg: `«${r}» aparece varias veces: usa ${r}#n` });
+        res.list.forEach(g => targets.add(g)); act._a.push(res.list);
+      }
+    } else if (act.verbo === 'renombrar') {
+      let scope = null;
+      if (act.refs.length) {
+        const res = await resolveRef(act.refs[0], A);
+        if (res.missing) { diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${act.refs[0]}» en el paso anterior` }); continue; }
+        scope = new Set(res.list);
+      }
+      const seqA = await fragmentChars(act.de);
+      const occ = seqA ? findSeq(seqA, A).filter(h => !scope || h.every(g => scope.has(g))) : [];
+      if (!occ.length) { diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${act.de}» para renombrar` }); continue; }
+      occ.forEach(h => h.forEach(g => targets.add(g)));
+      act._occ = occ;
     } else if (act.verbo === 'pausa') pause += act.seg;
+  }
+  // renombrar: cada aparición del símbolo viejo se transforma en la del nuevo más cercana
+  // (misma posición de índice), en el lugar y con fundido de la forma; no borra ni reescribe
+  for (const compas of step.pre) for (const act of compas) if (act.verbo === 'renombrar' && act._occ) {
+    const seqB = await fragmentChars(act.a);
+    const cand = seqB ? findSeq(seqB, B) : [];
+    const taken = new Set();
+    const opts = act._occ.flatMap((h, i) => cand.map((c, j) => {
+      const [ax, ay] = centerOf(h), [bx, by] = centerOf(c);
+      return { i, j, cost: Math.hypot(bx - ax, by - ay) + (h[0].pos !== c[0].pos ? 5000 : 0) };
+    })).sort((p, q) => p.cost - q.cost);
+    const doneA = new Set();
+    for (const o of opts) {
+      if (doneA.has(o.i) || taken.has(o.j)) continue;
+      doneA.add(o.i); taken.add(o.j);
+      const h = act._occ[o.i], c = cand[o.j];
+      for (let k = 0; k < Math.min(h.length, c.length); k++) push(h[k], c[k], 'accion', { morph: true });
+    }
+    if (doneA.size < act._occ.length) diags.push({ lv: 'W', code: 'W00', line: act.line, msg: `renombrar: ${act._occ.length - doneA.size} apariciones de «${act.de}» sin «${act.a}» que les corresponda` });
+  }
+  // intercambiar: cada término va a la aparición del mismo fragmento más cercana al lugar del otro;
+  // uno viaja en arco por arriba y el otro por abajo
+  for (const compas of step.pre) for (const act of compas) if (act.verbo === 'intercambiar' && act._a) {
+    for (let w = 0; w < 2; w++) {
+      const src = act._a[w], other = act._a[1 - w], [ox] = centerOf(other);
+      const rb = await resolveRef(act.refs[w].replace(/#\d+$/, ''), B);
+      if (rb.missing) { diags.push({ lv: 'E', code: 'E09', line: act.line, msg: `No encuentro «${act.refs[w]}» en el paso nuevo` }); continue; }
+      const free = rb.hits.filter(h => h.every(g => !usedB.has(g)));
+      if (!free.length) continue;
+      const dst = free.reduce((best, h) => Math.abs(centerOf(h)[0] - ox) < Math.abs(centerOf(best)[0] - ox) ? h : best);
+      for (let k = 0; k < Math.min(src.length, dst.length); k++) push(src[k], dst[k], 'accion', { swap: w ? -1 : 1 });
+    }
   }
   // nivel 1: identificadores del autor
   const idsA = new Set(A.flatMap(g => g.ids)), idsB = new Set(B.flatMap(g => g.ids));
@@ -561,6 +743,7 @@ async function compile(src, modeOverride) {
   const { header, steps, diags } = parseTiza(src);
   const fatal = diags.some(d => d.lv === 'E' && ['E01','E02','E03','E04'].includes(d.code));
   if (fatal) return { header, steps: [], diags };
+  ensurePackages(!!header.physics);
   if (header.macros) { try { await MathJax.tex2svgPromise(String(header.macros)); } catch (e) {} }
   const boardMode = modeOverride !== 'guion' ? modeOverride : (header.pizarra === 'en-lugar' ? 'en-lugar' : 'lineas');
   const out = [];
@@ -575,7 +758,7 @@ async function compile(src, modeOverride) {
     } else if (prev) { st.S = prev.S; st.decorOnly = true; }
     const flags = st.pre.flat().map(a => a.verbo);
     let inPlace = boardMode === 'en-lugar';
-    if (flags.includes('en-lugar')) inPlace = true;
+    if (flags.includes('en-lugar') || flags.includes('renombrar')) inPlace = true;   // renombrar transforma en el lugar (sección 7)
     if (flags.includes('nueva-linea')) inPlace = false;
     if (st.decorOnly) inPlace = true;
     st.slot = (!prev) ? 0 : (inPlace ? prev.slot : prev.slot + 1);
@@ -636,8 +819,9 @@ function schedule(st, first) {
     const d = clamp(0.55 + 0.07 * dist, 0.55, 1.2);
     const s = t + Math.min(i * 0.035, 0.35);
     const cross = p.a.side !== p.b.side;
-    const arc = cross || T.targets.has(p.a) ? clamp(0.18 * Math.abs(p.b.cx - p.a.cx), 250, 1100) : 0;
-    sch.glyph.set(p, { kind: 'move', s, d, arc });
+    const span = clamp(0.18 * Math.abs(p.b.cx - p.a.cx), 250, 1100);
+    const arc = p.swap ? p.swap * span : (p.morph ? 0 : (cross || T.targets.has(p.a) ? span : 0));
+    sch.glyph.set(p, { kind: 'move', s, d, arc, morph: !!p.morph });
     mEnd = Math.max(mEnd, s + d);
   });
   // salidas (solo se ven en el lugar) y raya de cancelación
@@ -850,8 +1034,10 @@ function frame(k, tau) {
       // transporte del renglón A al B y arco por encima de la relación
       const dyLine = lerp(ya, yb, f) - slotB;
       m[5] += dyLine - (sc.arc ? sc.arc * Math.sin(Math.PI * f) : 0);
-      const g = Object.assign({}, p.b, { m: p.b.m, box: p.b.box });
-      drawGlyph(p.b, m, colB, 1, undefined, cam, slotB);
+      if (sc.morph) {   // renombrar: fundido cruzado de la forma vieja a la nueva mientras se mueve
+        drawGlyph(p.a, m, colB, 1 - f, undefined, cam, slotB);
+        drawGlyph(p.b, m, colB, f, undefined, cam, slotB);
+      } else drawGlyph(p.b, m, colB, 1, undefined, cam, slotB);
     }
   }
   for (const p of T.rectPairs) {
@@ -1009,8 +1195,9 @@ mjHost = document.createElement('div');
 mjHost.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;font-size:16px';
 document.body.appendChild(mjHost);
 window.MathJax = {
-  loader: { load: ['[tex]/html'] },
-  tex: { packages: { '[+]': ['html'] } },
+  loader: { load: ['[tex]/html', '[tex]/braket', '[tex]/physics'] },
+  // braket siempre; physics queda cargado pero inactivo (y sin autocarga) hasta que un guion lo pida
+  tex: { packages: { '[+]': ['html', 'braket'] }, autoload: { physics: [] }, macros: TIZA_MACROS },
   output: { fontPath: FONT_PATH },
   svg: { fontCache: 'none' },
   options: { enableEnrichment: false, enableSpeech: false, enableBraille: false, enableExplorer: false, enableMenu: false },
