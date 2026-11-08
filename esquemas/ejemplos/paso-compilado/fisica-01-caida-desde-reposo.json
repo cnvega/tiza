@@ -1,0 +1,104 @@
+{
+  "formato": "tiza/0.1",
+  "titulo": "Velocidad de caída desde el reposo",
+  "curso": "Física general",
+  "etiquetas": [],
+  "tema": "pizarron-verde",
+  "ritmo": 1.0,
+  "pizarra": "lineas",
+  "alinear": "=",
+  "idioma": "es",
+  "paquetes": [],
+  "macros": "",
+  "supuestos": {
+    "positivos": ["m", "g", "h", "v"],
+    "reales": [],
+    "no-nulos": []
+  },
+  "pasos": [
+    {
+      "id": "p1",
+      "titulo": "Conservación de la energía",
+      "latex": "\\id{m1}{m} g h = \\frac{1}{2} \\id{m2}{m} v^2",
+      "modo": "nueva-linea",
+      "ids": ["m1", "m2"],
+      "compases": [],
+      "narracion": "Toda la energía potencial se convierte en cinética.",
+      "linea": 14
+    },
+    {
+      "id": "p2",
+      "titulo": "La masa se cancela",
+      "latex": "g h = \\frac{1}{2} v^2",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 19,
+          "acciones": [
+            {
+              "verbo": "cancelar",
+              "objetivos": ["m1", "m2"]
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 18
+    },
+    {
+      "id": "p3",
+      "titulo": "El 2 pasa multiplicando",
+      "latex": "\\id{dos}{2} g h = v^2",
+      "modo": "nueva-linea",
+      "ids": ["dos"],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 23,
+          "acciones": [
+            {
+              "verbo": "pasar",
+              "objetivos": ["2#1"],
+              "lado": "izq"
+            }
+          ]
+        }
+      ],
+      "narracion": "El 2 del denominador pasa al otro lado multiplicando.",
+      "linea": 22
+    },
+    {
+      "id": "p4",
+      "titulo": "Sacamos raíz cuadrada",
+      "latex": "v = \\sqrt{\\id{dos}{2} g h}",
+      "modo": "nueva-linea",
+      "ids": ["dos"],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 28,
+          "acciones": [
+            {
+              "verbo": "resaltar",
+              "objetivos": ["v^2"]
+            }
+          ]
+        },
+        {
+          "posicion": "posterior",
+          "linea": 30,
+          "acciones": [
+            {
+              "verbo": "recuadro",
+              "objetivos": []
+            }
+          ]
+        }
+      ],
+      "narracion": "Como v es positiva, nos quedamos con la raíz positiva.",
+      "linea": 27
+    }
+  ]
+}

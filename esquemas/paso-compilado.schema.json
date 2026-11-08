@@ -1,0 +1,520 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/cnvega/tiza/esquemas/paso-compilado.schema.json",
+  "title": "GuionCompilado (contrato C2)",
+  "description": "Salida del paquete guion: el encabezado normalizado y la lista PasoCompilado[] de un guion .tiza válido (tiza/0.1 o tiza/0.2). Borrador de ADR 0003. Lo consumen tipografia, verificar y asistente.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "formato",
+    "titulo",
+    "etiquetas",
+    "tema",
+    "ritmo",
+    "pizarra",
+    "alinear",
+    "idioma",
+    "paquetes",
+    "macros",
+    "supuestos",
+    "pasos"
+  ],
+  "properties": {
+    "formato": {
+      "description": "Versión del formato declarada en el guion.",
+      "enum": ["tiza/0.1", "tiza/0.2"]
+    },
+    "titulo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "curso": {
+      "type": "string"
+    },
+    "etiquetas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "tema": {
+      "enum": ["pizarron-verde", "pizarron-negro", "pizarra-blanca", "transparente"]
+    },
+    "ritmo": {
+      "type": "number",
+      "minimum": 0.25,
+      "maximum": 3
+    },
+    "pizarra": {
+      "enum": ["lineas", "en-lugar"]
+    },
+    "alinear": {
+      "enum": ["=", "\\approx", "<", ">", "\\le", "\\ge", "ninguna"]
+    },
+    "idioma": {
+      "enum": ["es", "en"]
+    },
+    "paquetes": {
+      "type": "array",
+      "items": {
+        "enum": ["physics"]
+      },
+      "uniqueItems": true
+    },
+    "macros": {
+      "description": "Texto del bloque macros tal como viene en el encabezado (vacío si no hay).",
+      "type": "string"
+    },
+    "supuestos": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["positivos", "reales", "no-nulos"],
+      "properties": {
+        "positivos": {
+          "$ref": "#/$defs/listaSimbolos"
+        },
+        "reales": {
+          "$ref": "#/$defs/listaSimbolos"
+        },
+        "no-nulos": {
+          "$ref": "#/$defs/listaSimbolos"
+        }
+      }
+    },
+    "pasos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/PasoCompilado"
+      }
+    }
+  },
+  "$defs": {
+    "listaSimbolos": {
+      "description": "Símbolos escritos como en LaTeX, sin $: r, v_0, \\theta.",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "PasoCompilado": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "titulo", "latex", "modo", "ids", "compases", "narracion", "linea"],
+      "properties": {
+        "id": {
+          "description": "p + número de paso desde 1.",
+          "type": "string",
+          "pattern": "^p[1-9][0-9]*$"
+        },
+        "titulo": {
+          "description": "Texto después de ##, sin espacios al borde. Vacío si el paso no tiene título.",
+          "type": "string"
+        },
+        "latex": {
+          "description": "Fórmula entre $$ y $$, sin espacios al borde y con los saltos de línea cambiados por un espacio. Conserva \\id, \\tensor y las macros del autor: los expande tipografia. null si el paso no tiene fórmula.",
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "modo": {
+          "description": "nueva-linea o en-lugar, ya resuelto desde pizarra y las acciones en-lugar/nueva-linea, que no aparecen en compases. El primer paso siempre es nueva-linea.",
+          "enum": ["nueva-linea", "en-lugar"]
+        },
+        "ids": {
+          "description": "Nombres de \\id{nombre}{…} declarados en la fórmula, en orden de lectura.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/nombreId"
+          }
+        },
+        "compases": {
+          "description": "Una entrada por línea ::, en el orden del archivo. Las acciones unidas con + comparten compás.",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Compas"
+          }
+        },
+        "narracion": {
+          "description": "Líneas > unidas con un espacio. Vacío si no hay narración.",
+          "type": "string"
+        },
+        "linea": {
+          "description": "Línea del ## en el archivo fuente, desde 1.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "nombreId": {
+      "type": "string",
+      "pattern": "^[A-Za-z][A-Za-z0-9-]*$"
+    },
+    "Compas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acciones"],
+      "properties": {
+        "posicion": {
+          "description": "previa (antes de la fórmula) o posterior (después). Por omisión, previa.",
+          "enum": ["previa", "posterior"],
+          "default": "previa"
+        },
+        "linea": {
+          "description": "Línea de :: en el archivo fuente, desde 1.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "acciones": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/Accion"
+          }
+        }
+      }
+    },
+    "referencia": {
+      "description": "Referencia tal como la escribió el autor (sección 6): identificador (ms), fragmento LaTeX (T^2, {\\tfrac12 m v^2} sin las llaves externas), con aparición (r#2) o índice con posición (^\\mu, _\\nu#2). La resuelve emparejar contra los glifos.",
+      "type": "string",
+      "minLength": 1
+    },
+    "lado": {
+      "enum": ["izq", "der"]
+    },
+    "tex": {
+      "type": "string",
+      "minLength": 1
+    },
+    "Accion": {
+      "description": "Una acción del vocabulario (sección 7). Cada verbo admite solo sus campos.",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/accionPasar"
+        },
+        {
+          "$ref": "#/$defs/accionVariasRef"
+        },
+        {
+          "$ref": "#/$defs/accionBorrar"
+        },
+        {
+          "$ref": "#/$defs/accionRefOpcional"
+        },
+        {
+          "$ref": "#/$defs/accionUnaRef"
+        },
+        {
+          "$ref": "#/$defs/accionDosRef"
+        },
+        {
+          "$ref": "#/$defs/accionPausa"
+        },
+        {
+          "$ref": "#/$defs/accionRenombrar"
+        },
+        {
+          "$ref": "#/$defs/accionSustituir"
+        },
+        {
+          "$ref": "#/$defs/accionAmbosLados"
+        },
+        {
+          "$ref": "#/$defs/accionDerivar"
+        },
+        {
+          "$ref": "#/$defs/accionIntegrar"
+        },
+        {
+          "$ref": "#/$defs/accionAproximar"
+        },
+        {
+          "$ref": "#/$defs/accionNota"
+        },
+        {
+          "$ref": "#/$defs/accionLlave"
+        },
+        {
+          "$ref": "#/$defs/accionColumna"
+        }
+      ]
+    },
+    "accionPasar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos", "lado"],
+      "properties": {
+        "verbo": {
+          "const": "pasar"
+        },
+        "objetivos": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        },
+        "lado": {
+          "$ref": "#/$defs/lado"
+        }
+      }
+    },
+    "accionVariasRef": {
+      "description": "cancelar y resaltar piden una o más referencias.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos"],
+      "properties": {
+        "verbo": {
+          "enum": ["cancelar", "resaltar"]
+        },
+        "objetivos": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        }
+      }
+    },
+    "accionBorrar": {
+      "description": "Sin objetivos, borra la pizarra.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos"],
+      "properties": {
+        "verbo": {
+          "const": "borrar"
+        },
+        "objetivos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        }
+      }
+    },
+    "accionRefOpcional": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos"],
+      "properties": {
+        "verbo": {
+          "enum": ["expandir", "simplificar", "recuadro"]
+        },
+        "objetivos": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        }
+      }
+    },
+    "accionUnaRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos"],
+      "properties": {
+        "verbo": {
+          "enum": ["bajar", "subir", "factorizar"]
+        },
+        "objetivos": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        }
+      }
+    },
+    "accionDosRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos"],
+      "properties": {
+        "verbo": {
+          "enum": ["contraer", "intercambiar", "flecha"]
+        },
+        "objetivos": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        }
+      }
+    },
+    "accionPausa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "segundos"],
+      "properties": {
+        "verbo": {
+          "const": "pausa"
+        },
+        "segundos": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "accionRenombrar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "de", "a", "objetivos"],
+      "properties": {
+        "verbo": {
+          "const": "renombrar"
+        },
+        "de": {
+          "$ref": "#/$defs/tex"
+        },
+        "a": {
+          "$ref": "#/$defs/tex"
+        },
+        "objetivos": {
+          "description": "Vacío: toda la línea. Con una referencia: solo dentro de ella.",
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        }
+      }
+    },
+    "accionSustituir": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "de", "a"],
+      "properties": {
+        "verbo": {
+          "const": "sustituir"
+        },
+        "de": {
+          "description": "LaTeX a la izquierda del primer = de la línea.",
+          "$ref": "#/$defs/tex"
+        },
+        "a": {
+          "description": "LaTeX a la derecha del primer = de la línea.",
+          "$ref": "#/$defs/tex"
+        }
+      }
+    },
+    "accionAmbosLados": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "tex"],
+      "properties": {
+        "verbo": {
+          "const": "ambos-lados"
+        },
+        "tex": {
+          "description": "Resto de la línea: la operación, como \\cdot r.",
+          "$ref": "#/$defs/tex"
+        }
+      }
+    },
+    "accionDerivar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "variable"],
+      "properties": {
+        "verbo": {
+          "const": "derivar"
+        },
+        "variable": {
+          "$ref": "#/$defs/tex"
+        }
+      }
+    },
+    "accionIntegrar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "variable"],
+      "properties": {
+        "verbo": {
+          "const": "integrar"
+        },
+        "variable": {
+          "$ref": "#/$defs/tex"
+        },
+        "desde": {
+          "$ref": "#/$defs/tex"
+        },
+        "hasta": {
+          "$ref": "#/$defs/tex"
+        }
+      },
+      "dependentRequired": {
+        "desde": ["hasta"],
+        "hasta": ["desde"]
+      }
+    },
+    "accionAproximar": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "texto"],
+      "properties": {
+        "verbo": {
+          "const": "aproximar"
+        },
+        "texto": {
+          "type": "string"
+        }
+      }
+    },
+    "accionNota": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "texto", "lado"],
+      "properties": {
+        "verbo": {
+          "const": "nota"
+        },
+        "texto": {
+          "type": "string"
+        },
+        "lado": {
+          "description": "Por omisión, der.",
+          "$ref": "#/$defs/lado"
+        }
+      }
+    },
+    "accionLlave": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo", "objetivos", "texto"],
+      "properties": {
+        "verbo": {
+          "const": "llave"
+        },
+        "objetivos": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1,
+          "items": {
+            "$ref": "#/$defs/referencia"
+          }
+        },
+        "texto": {
+          "type": "string"
+        }
+      }
+    },
+    "accionColumna": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verbo"],
+      "properties": {
+        "verbo": {
+          "const": "columna"
+        }
+      }
+    }
+  }
+}
