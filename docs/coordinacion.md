@@ -117,7 +117,7 @@ Orden crítico del prototipo F0: W0 → (W1 ∥ W3) → W4 → W5 → W6. Criter
 
 1. Leer este documento, `docs/estado.md` y el issue que se va a tomar.
 2. Si no hay issue, crearlo con: frente (W#), objetivo, contrato(s) que toca, criterio de aceptación.
-3. Marcar el issue como asignado a la sesión (comentario `En curso — sesión <fecha> <chat|code>`) y anotarlo en `docs/estado.md`.
+3. Marcar el issue con la etiqueta `estado: en curso` y comentar `En curso — sesión <fecha> <chat|code|autónoma>`.
 
 **Mientras trabaja**
 
@@ -128,10 +128,10 @@ Orden crítico del prototipo F0: W0 → (W1 ∥ W3) → W4 → W5 → W6. Criter
 
 **Al terminar**
 
-8. PR a `main` con: issue enlazado, qué cambió, cómo se probó, capturas o GIF si es visual.
+8. PR a `main` cuya primera línea es `Closes #n` (en inglés: GitHub no cierra issues con «Cierra #n»), luego qué cambió, cómo se probó y capturas si es visual.
 9. CI en verde (tipos, lint, Vitest, validación del corpus, pruebas visuales).
-10. Comentar en el issue el estado final y lo pendiente; actualizar `docs/estado.md`.
-11. Nunca hacer merge propio de cambios de contrato: los aprueba Cris.
+10. Etiquetar el issue `estado: en revisión` y comentar el estado final y lo pendiente. El Tablero (issue #14) lo actualiza el coordinador.
+11. Nunca hacer merge: Cris fusiona todos los PR (decisión del 2026-11-07).
 
 **Sesiones de chat** (sin repositorio local): producen especificaciones, ADR, guiones de corpus y revisiones. Entregan archivos para que una sesión Code o Cris los suba, o abren el PR si tienen acceso a GitHub.
 
@@ -149,13 +149,55 @@ Orden crítico del prototipo F0: W0 → (W1 ∥ W3) → W4 → W5 → W6. Criter
 
 ## 8. Estado actual
 
-| Fecha | Hito | Estado |
-| --- | --- | --- |
-| 2026-11-06 | Propuesta técnica y plan | Hecho |
-| 2026-11-07 | Formato `.tiza` v0.1 y este documento | Hecho |
-| 2026-11-07 | Prototipo F0 publicado: https://claude.ai/artifact/Ueg8LhVjy8gtTkvtYjhymB (código para `apps/prototipo/`) | En prueba |
-| 2026-11-07 | Repositorio creado: https://github.com/cnvega/tiza | Hecho |
-| — | Primer commit con documentos y prototipo; luego W0 | En curso (Cris) |
-| 2026-12-18 (meta) | Decisión de salida de F0 | Pendiente |
+Ver el [Tablero de coordinación (issue #14)](https://github.com/cnvega/tiza/issues/14) y la bitácora `docs/estado.md`.
 
-Calendario base: inicio 30 nov 2026; MVP 19 feb 2027; v1.0 18 jun 2027 (un desarrollador a tiempo completo más apoyo parcial para W8).
+Calendario base: inicio 30 nov 2026; MVP 19 feb 2027; v1.0 18 jun 2027.
+
+---
+
+## 9. Coordinación y tareas autónomas
+
+Una sesión de chat actúa como **coordinador general**: planifica, abre los issues con sus dependencias, prepara los prompts, revisa los PR por contenido y lleva el tablero. Un **coordinador automático** (tarea programada «Tiza · coordinador») mantiene el ritmo cuando Cris no está.
+
+**Reglas acordadas con Cris (2026-11-07)**
+
+| Regla | Valor |
+| --- | --- |
+| Quién fusiona PR | Solo Cris, siempre |
+| Revisión automática | 08:41 y 18:41 (hora de Chile), y al terminar cada sesión autónoma |
+| Sesiones autónomas simultáneas | Máximo 2 |
+| Avisos a Cris | Notificación solo cuando algo nuevo requiere su acción |
+
+**Fuentes de verdad**
+
+- **Issues y etiquetas** de GitHub: qué hay que hacer y en qué estado está.
+- **Tablero** (issue #14): resumen que el coordinador reescribe en cada revisión.
+- `docs/estado.md`: solo la bitácora de hitos (sección «Hecho»); ya no se usa para el día a día.
+
+**Etiquetas**
+
+| Etiqueta | Significado |
+| --- | --- |
+| `W0` … `W9` | Frente de trabajo |
+| `estado: listo` | Dependencias resueltas; se puede tomar |
+| `estado: bloqueado` | Espera otro issue o una decisión |
+| `estado: en curso` | Una sesión lo tiene asignado |
+| `estado: en revisión` | PR abierto esperando a Cris |
+| `autónomo` | Lo puede tomar una sesión programada sin intervención |
+| `requiere Cris` | Necesita una decisión, una prueba o una aprobación de Cris |
+| `contrato` | Cambia C1–C6: ADR obligatorio y aprobación de Cris |
+| `pruebas` | Tarea de pruebas o validación |
+
+**Formato de los issues.** La primera línea es `Depende de: #a, #b` (o `Depende de: —`). Luego frente, contratos que toca, objetivo, alcance y criterio de aceptación. Un issue sin criterio de aceptación no se marca `autónomo`.
+
+**Ciclo de una tarea autónoma**
+
+1. El coordinador ve un issue `autónomo` + `estado: listo` y hay cupo: crea la tarea programada «Tiza · #N …» con el prompt de [`docs/prompts/sesion-autonoma.md`](prompts/sesion-autonoma.md) y marca el issue `estado: en curso`.
+2. La sesión trabaja en su rama, abre el PR con `Closes #N` y marca el issue `estado: en revisión`.
+3. Al terminar, la sesión ejecuta «Tiza · coordinador», que lanza la siguiente tarea lista.
+4. Cris revisa y fusiona. El issue se cierra solo y, en la siguiente revisión, el coordinador desbloquea lo que dependía de él.
+
+Si una sesión se traba en una decisión, deja el issue `requiere Cris` + `estado: bloqueado` con una pregunta concreta; el coordinador avisa a Cris.
+
+**Lanzar una sesión a mano.** Abre una sesión nueva de Claude Code con acceso a GitHub y pega el prompt de `docs/prompts/sesion-autonoma.md` con el número del issue. Antes, etiqueta el issue `estado: en curso` para que el coordinador no lo lance dos veces.
+

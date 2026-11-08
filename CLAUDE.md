@@ -1,6 +1,6 @@
 # Instrucciones para Claude en este repositorio
 
-Antes de cambiar nada, lee `docs/coordinacion.md` y `docs/estado.md`. Si tu tarea toca el formato de guion, lee `docs/spec/tiza-formato.md`.
+Antes de cambiar nada, lee `docs/coordinacion.md` (en especial la sección 9) y el Tablero (issue #14). Si tu tarea toca el formato de guion, lee `docs/spec/tiza-formato.md`.
 
 ## Reglas
 
@@ -9,7 +9,10 @@ Antes de cambiar nada, lee `docs/coordinacion.md` y `docs/estado.md`. Si tu tare
 - No edites paquetes fuera de tu frente. Si necesitas algo de otro frente, abre un issue y usa datos de prueba.
 - Los contratos (C1–C6) solo cambian por un PR propio con ADR en `docs/adr/`, y los aprueba Cris. No hagas merge de esos PR.
 - Commits pequeños en español: `paquete: verbo en presente` (ej. `emparejar: agrega costo por cambio de escala`).
-- Al terminar: PR con el issue enlazado, qué cambió, cómo se probó y capturas si es visual; comenta el estado en el issue y actualiza `docs/estado.md`.
+- Al terminar: PR cuya primera línea es `Closes #n` (en inglés, para que GitHub cierre el issue), con qué cambió, cómo se probó y capturas si es visual; etiqueta el issue `estado: en revisión` y comenta el estado.
+- Nunca hagas merge: Cris fusiona todos los PR.
+- Los issues declaran sus dependencias en la primera línea (`Depende de: #a, #b`). Si una sigue abierta, no empieces.
+- Si te bloquea una decisión, etiqueta el issue `requiere Cris` + `estado: bloqueado` y deja la pregunta con opciones. Si eres una sesión autónoma, al terminar ejecuta la tarea programada «Tiza · coordinador» (ver `docs/prompts/sesion-autonoma.md`).
 - Cada error corregido deja un caso de prueba en `corpus/` o en las pruebas del paquete.
 
 ## Convenciones

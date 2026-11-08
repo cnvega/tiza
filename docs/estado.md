@@ -1,26 +1,19 @@
 # Estado del trabajo
 
-Tablero corto. Cada sesión anota aquí lo que toma y lo que deja. Lo más reciente arriba.
+El estado día a día vive en GitHub: issues con sus etiquetas y el **[Tablero de coordinación (issue #14)](https://github.com/cnvega/tiza/issues/14)**, que el coordinador reescribe en cada revisión. Ver `docs/coordinacion.md`, sección 9.
 
-## En curso
-
-| Frente | Issue | Rama | Quién | Desde |
-| --- | --- | --- | --- | --- |
-| W9 | #3 | `w9/licencias` | Claude (code) | 2026-11-07 |
-
-## Próximo
-
-| Frente | Qué | Bloqueado por |
-| --- | --- | --- |
-| F0 | Probar el prototipo en sala: fluidez, legibilidad, ritmo y meta de 80 % de parejas | — |
-| W0 | Andamiaje: pnpm workspaces, TypeScript, Vitest, CI y esquemas C2–C6 con ejemplos | Revisión de F0 en sala |
-| W2 | Ampliar el corpus según la matriz de cobertura de la especificación | — |
-| W6 | Enlace visible al código fuente en el prototipo y las apps servidas por red (AGPL §13, ADR 0001) | — |
-| W9 | Activar GitHub Sponsors (`.github/FUNDING.yml`) y ofrecer licencia comercial | Documentos de titularidad de la Universidad (ADR 0001, «Condiciones») |
+Este archivo es solo la bitácora de hitos.
 
 ## Hecho
 
 | Fecha | Qué |
 | --- | --- |
-| 2026-11-07 | Documentos iniciales (#1, PR #2) |
-| 2026-11-07 | Documentos de coordinación y formato `.tiza` v0.1; prototipo F0; tres guiones de corpus |
+| 2026-11-07 | Coordinación automática: etiquetas, tablero (#14), prompts y coordinador programado |
+| 2026-11-07 | Licencias AGPLv3 + comercial, CC para documentación y corpus (#3, PR #4) |
+| 2026-11-07 | Documentos iniciales, formato `.tiza` v0.1, prototipo F0 y tres guiones de corpus (#1, PR #2) |
+
+## Pendiente fuera del ciclo de issues
+
+| Qué | Espera |
+| --- | --- |
+| Activar GitHub Sponsors (`.github/FUNDING.yml`) y ofrecer licencia comercial | Documentos de titularidad de la Universidad (ADR 0001, «Condiciones») |
