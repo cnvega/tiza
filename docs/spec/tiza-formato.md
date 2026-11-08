@@ -1,6 +1,7 @@
-# Especificación del formato de guion `.tiza` — versión 0.1
+# Especificación del formato de guion `.tiza` — versión 0.2
 
 Estado: borrador para el prototipo (F0) y el MVP (F1–F2).
+Cambios respecto de 0.1 (ADR 0002): índices tensoriales, delimitadores con nombre, paquetes de TeX, cinco gestos y cuatro validaciones. Todo guion `tiza/0.1` válido sigue siendo válido.
 Fuente de verdad del formato. Cualquier cambio se hace por PR con una nota de decisión (ADR) y sube la versión.
 
 ---
@@ -40,7 +41,7 @@ Estructura obligatoria, en este orden:
 
 ```yaml
 ---
-formato: tiza/0.1
+formato: tiza/0.2
 titulo: Tercera ley de Kepler para una órbita circular
 curso: Astrofísica
 etiquetas: [gravitación, órbitas]
@@ -49,6 +50,7 @@ ritmo: 1.0
 pizarra: lineas
 alinear: "="
 idioma: es
+paquetes: []
 macros: |
   \newcommand{\dd}{\mathrm{d}}
 supuestos:
@@ -60,7 +62,7 @@ supuestos:
 
 | Clave | Tipo | Valores | Por omisión | Obligatoria |
 | --- | --- | --- | --- | --- |
-| `formato` | texto | `tiza/0.1` | — | Sí |
+| `formato` | texto | `tiza/0.2` (se acepta `tiza/0.1`) | — | Sí |
 | `titulo` | texto | libre | — | Sí |
 | `curso` | texto | libre | ninguno | No |
 | `etiquetas` | lista de textos | libre | `[]` | No |
@@ -69,6 +71,7 @@ supuestos:
 | `pizarra` | enum | `lineas`, `en-lugar` | `lineas` | No |
 | `alinear` | texto | `"="`, `"\approx"`, `"<"`, `">"`, `"\le"`, `"\ge"`, `ninguna` | `"="` | No |
 | `idioma` | enum | `es`, `en` | `es` | No |
+| `paquetes` | lista | `physics` (opcional; ver 5.2) | `[]` | No |
 | `macros` | bloque de texto | definiciones `\newcommand` / `\renewcommand` | vacío | No |
 | `supuestos` | mapa | claves `positivos`, `reales`, `no-nulos`, cada una lista de símbolos | todos `reales` | No |
 
@@ -110,7 +113,7 @@ Reglas:
 
 ## 5. LaTeX admitido
 
-Base: modo matemático de LaTeX con AMS (`amsmath`, `amssymb`), tal como lo procesa MathJax 4.
+Base: modo matemático de LaTeX con AMS (`amsmath`, `amssymb`) y `braket`, tal como lo procesa MathJax 4.
 
 Admitido y esperado en física y cálculo:
 
@@ -119,13 +122,13 @@ Admitido y esperado en física y cálculo:
 - Derivadas: `\frac{\mathrm{d}v}{\mathrm{d}t}`, `\frac{\partial f}{\partial x}`, `\nabla`.
 - Integrales y sumas: `\int_a^b`, `\iint`, `\oint`, `\sum_{i=1}^{n}`, `\prod`, `\lim_{x\to 0}`.
 - Vectores: `\vec{v}`, `\hat{n}`, `\mathbf{F}`, `\boldsymbol{\omega}`.
-- Delimitadores `\left( … \right)`, `\left[ … \right]`, `\lvert … \rvert`.
+- Delimitadores de todo tipo y tensores: ver 5.2 y 5.3.
 - Unidades en texto recto: `\mathrm{m\,s^{-1}}`.
 - Letras griegas, `\cdot`, `\times`, `\approx`, `\propto`, `\sim`, `\pm`.
 - Funciones: `\sin`, `\cos`, `\ln`, `\exp`, `\log`.
 - Espaciado fino: `\,`, `\;`, `\quad`.
 
-No admitido en v0.1 (error): entornos (`\begin{...}`), `\\`, `&`, `\text{}` con LaTeX anidado, `\color` (los colores los decide el motor), `\label`, `\tag`.
+No admitido en v0.2 (error): entornos (`\begin{...}`), `\\`, `&`, `\text{}` con LaTeX anidado, `\color` (los colores los decide el motor), `\label`, `\tag`.
 
 ### 5.1 Macro `\id`
 
@@ -138,6 +141,55 @@ No admitido en v0.1 (error): entornos (`\begin{...}`), `\\`, `&`, `\text{}` con 
 - El mismo `nombre` en dos pasos consecutivos fuerza que esos términos se emparejen.
 - Fuera de Tiza, en LaTeX común, se define como identidad: `\newcommand{\id}[2]{#2}`.
 
+### 5.2 Delimitadores
+
+Todos los tipos se admiten, con tamaño fijo o ajustado al contenido.
+
+| Tipo | Fijo | Ajustado al contenido | Uso típico |
+| --- | --- | --- | --- |
+| Paréntesis | `( )` | `\left( … \right)` | Agrupar, argumentos |
+| Corchetes | `[ ]` | `\left[ … \right]` | Conmutadores, intervalos |
+| Llaves | `\{ \}` | `\left\{ … \right\}` | Anticonmutadores, conjuntos |
+| Angulares | `\langle \rangle` | `\left\langle … \right\rangle` | Valores esperados, Dirac |
+| Barras | `\lvert \rvert` | `\left\lvert … \right\rvert` | Módulo |
+| Barras dobles | `\lVert \rVert` | `\left\lVert … \right\rVert` | Norma |
+| Piso y techo | `\lfloor \rfloor`, `\lceil \rceil` | con `\left` / `\right` | Redondeo |
+
+- Tamaños manuales: `\big`, `\Big`, `\bigg`, `\Bigg` (con `l` y `r`).
+- Separador interno ajustado: `\middle|` (por ejemplo, ⟨φ \middle| ψ⟩).
+- Se pueden mezclar tipos en un mismo par ajustado, como en intervalos `\left[ 0, 1 \right)`.
+- `\left` y `\right` deben formar pares dentro de la fórmula (E13).
+
+**Macros de delimitadores de Tiza.** Se ajustan solas al alto del contenido y coinciden en nombre y significado con las del paquete `physics`:
+
+| Macro | Resultado | Ejemplo |
+| --- | --- | --- |
+| `\comm{A}{B}` | [A, B] | `\comm{\hat{x}}{\hat{p}} = i\hbar` |
+| `\acomm{A}{B}` | {A, B} | `\acomm{\sigma_i}{\sigma_j} = 2\delta_{ij}` |
+| `\expval{A}` | ⟨A⟩ | `\expval{\hat{H}}` |
+| `\abs{x}` | \|x\| | `\abs{\psi}^2` |
+| `\norm{x}` | ‖x‖ | `\norm{\vec{v}}` |
+
+**Notación de Dirac (paquete `braket`, siempre activo).** `\bra{\phi}` → ⟨φ|, `\ket{\psi}` → |ψ⟩, `\braket{\phi | \psi}` → ⟨φ|ψ⟩, `\braket{\phi | \hat{A} | \psi}` → ⟨φ|Â|ψ⟩. Las versiones con mayúscula (`\Bra`, `\Ket`, `\Braket`) ajustan el tamaño al contenido.
+
+**Paquete `physics` (opcional).** Se activa con `paquetes: [physics]` y suma `\qty`, `\dv`, `\pdv`, `\mel`, `\vb`, entre otros. Redefine `\div` (deja de ser ÷), `\dd` y otros comandos comunes, por eso produce la advertencia W08. Con `physics`, `\braket{a}{b}` usa la sintaxis de dos argumentos de ese paquete.
+
+### 5.3 Índices tensoriales
+
+- **Índices simples:** `p^{\mu}`, `g_{\mu\nu}`, `x^{\mu'}`, `\partial_{\mu}`.
+- **Índices escalonados** (cada índice en su columna): con llaves vacías, `T^{\mu}{}_{\nu}`, o con la macro de Tiza `\tensor`:
+
+```latex
+\tensor{T}{^\mu_\nu}            % T^{\mu}{}_{\nu}
+\tensor{R}{^\rho_{\sigma\mu\nu}}  % R^{\rho}{}_{\sigma\mu\nu}
+\tensor{\Gamma}{^\lambda_{\mu\nu}}
+```
+
+  `\tensor` usa la sintaxis del paquete `tensor` de LaTeX: el guion se lleva a un documento LaTeX con `\usepackage{tensor}` sin cambios. Los índices seguidos en la misma posición se agrupan: `{^\rho_\sigma_\mu_\nu}` equivale a `{^\rho_{\sigma\mu\nu}}`.
+- **Derivadas en índices:** coma y punto y coma se admiten como texto del índice: `\tensor{T}{^\mu_{\nu;\mu}}`.
+- **Convención de Einstein:** un índice repetido una vez arriba y una abajo en un mismo término es mudo y se suma. El validador usa esta convención para W06 y W07.
+- **Posición:** cada glifo de un índice sabe si es superior o inferior. Las referencias pueden pedir una posición (sección 6).
+
 ---
 
 ## 6. Referencias a términos
@@ -149,6 +201,7 @@ Las acciones nombran términos de tres formas:
 | Identificador | `ms` | El término marcado con `\id{ms}{…}` |
 | Fragmento LaTeX | `T^2` | El subárbol que coincide por estructura (no por texto) |
 | Fragmento con aparición | `r#2` | La segunda aparición en orden de lectura |
+| Índice con posición | `^\mu`, `_\nu#2` | Solo índices superiores (`^`) o inferiores (`_`) con ese símbolo |
 
 - Se resuelven en el **paso anterior** si la acción es previa, y en el **paso actual** si es posterior.
 - `\frac{GM}{r}` encuentra `\frac{G M}{r}`: espacios y llaves redundantes no importan.
@@ -172,6 +225,11 @@ Firma: `verbo argumentos…`. `REF` = referencia (sección 6), `LADO` = `izq|der
 | `pausa` | `pausa NUM` | cualquiera | Detiene NUM segundos; en vivo, espera clic | MVP |
 | `en-lugar` | `en-lugar` | previa | Este paso transforma la línea actual en vez de escribir una nueva | MVP |
 | `nueva-linea` | `nueva-linea` | previa | Este paso escribe una línea nueva (útil si `pizarra: en-lugar`) | MVP |
+| `renombrar` | `renombrar TEX TEX [REF]` | previa | Transforma en el lugar cada aparición del primer símbolo en el segundo (índices mudos), dentro de REF o en toda la línea | MVP |
+| `contraer` | `contraer REF REF` | previa | Une con un arco el par de índices repetidos y aplica la contracción | MVP |
+| `bajar` | `bajar REF` | previa | El índice baja en arco mientras se escribe la métrica que lo baja | MVP |
+| `subir` | `subir REF` | previa | El índice sube en arco mientras se escribe la métrica inversa | MVP |
+| `intercambiar` | `intercambiar REF REF` | previa | Dos términos o factores cambian de lugar en arcos cruzados (orden de operadores) | MVP |
 | `sustituir` | `sustituir TEX = TEX` | previa | Muestra la igualdad al margen y lleva la expresión a su lugar. Toma el resto de la línea | v1.0 |
 | `expandir` | `expandir [REF]` | previa | Arcos distributivos y escritura término a término | v1.0 |
 | `factorizar` | `factorizar REF` | previa | Reúne el factor común adelante | v1.0 |
@@ -199,7 +257,7 @@ Reglas:
 | Código | Nivel | Condición |
 | --- | --- | --- |
 | E01 | error | Falta el encabezado o `formato` |
-| E02 | error | `formato` distinto de `tiza/0.1` |
+| E02 | error | `formato` distinto de `tiza/0.1` y `tiza/0.2` |
 | E03 | error | Falta `titulo` |
 | E04 | error | No hay pasos, o el primer paso no tiene fórmula |
 | E05 | error | LaTeX que MathJax no compone |
@@ -210,11 +268,15 @@ Reglas:
 | E10 | error | Referencia ambigua sin `#n` |
 | E11 | error | `\id` con nombre inválido o repetido en el paso |
 | E12 | error | Acción de transformación previa en el primer paso |
+| E13 | error | `\left` o `\right` sin pareja en la fórmula |
 | W01 | advertencia | Clave de encabezado desconocida |
 | W02 | advertencia | Acción aún no implementada en esta versión del motor |
 | W03 | advertencia | Paso con más de 60 glifos (legibilidad en proyección) |
 | W04 | advertencia | Más de 12 pasos en un guion (dividir la derivación) |
 | W05 | advertencia | Símbolo usado en el paso que no aparece en `supuestos` cuando hay supuestos declarados |
+| W06 | advertencia | Los índices libres no son los mismos a ambos lados de la ecuación |
+| W07 | advertencia | Un índice aparece más de dos veces en un mismo término |
+| W08 | advertencia | Paquete `physics` activo: `\div`, `\dd` y otros comandos cambian de significado |
 
 Los mensajes indican archivo, línea y columna.
 
@@ -248,7 +310,7 @@ El analizador produce, por paso, un `PasoCompilado` (esquema completo en `esquem
 
 ```markdown
 ---
-formato: tiza/0.1
+formato: tiza/0.2
 titulo: Despeje lineal
 ---
 
@@ -275,7 +337,7 @@ $$ x = 5 $$
 
 ```markdown
 ---
-formato: tiza/0.1
+formato: tiza/0.2
 titulo: Tercera ley de Kepler para una órbita circular
 curso: Astrofísica
 tema: pizarron-verde
@@ -323,6 +385,52 @@ $$ T^2 = \frac{4\pi^2}{G M}\, r^3 $$
 > El cuadrado del período crece como el cubo del radio: la tercera ley de Kepler.
 ```
 
+### 10.3 Cuántica: conmutador de posición y momento
+
+```markdown
+---
+formato: tiza/0.2
+titulo: Conmutador de posición y momento
+---
+
+## Definición del conmutador
+$$ \comm{\hat{x}}{\hat{p}} f = \hat{x}\hat{p} f - \hat{p}\hat{x} f $$
+
+## Momento en representación de posición
+:: sustituir \hat{p} = -i\hbar \frac{d}{dx}
+$$ \comm{\hat{x}}{\hat{p}} f = -i\hbar\, x \frac{df}{dx} + i\hbar \frac{d}{dx}\left( x f \right) $$
+
+## Regla del producto
+$$ \comm{\hat{x}}{\hat{p}} f = -i\hbar\, x \frac{df}{dx} + i\hbar \left( f + x \frac{df}{dx} \right) $$
+
+## Distribuimos
+$$ \comm{\hat{x}}{\hat{p}} f = \id{a}{-i\hbar\, x \frac{df}{dx}} + i\hbar f \id{b}{+ i\hbar\, x \frac{df}{dx}} $$
+
+## Se cancelan
+:: cancelar a b
+$$ \comm{\hat{x}}{\hat{p}} f = i\hbar f $$
+:: recuadro
+```
+
+### 10.4 Relatividad: índices y renombre de índice mudo
+
+```markdown
+---
+formato: tiza/0.2
+titulo: Derivada covariante de un tensor mixto
+---
+
+## Conservación
+$$ \nabla_{\mu} \tensor{T}{^\mu_\nu} = 0 $$
+
+## Expandimos la derivada covariante
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\lambda}} \tensor{T}{^\lambda_\nu} - \tensor{\Gamma}{^\lambda_{\mu\nu}} \tensor{T}{^\mu_\lambda} = 0 $$
+
+## Renombramos el índice mudo
+:: renombrar \lambda \sigma
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\sigma}} \tensor{T}{^\sigma_\nu} - \tensor{\Gamma}{^\sigma_{\mu\nu}} \tensor{T}{^\mu_\sigma} = 0 $$
+```
+
 ---
 
 ## 11. Guía para guiones de prueba
@@ -361,8 +469,15 @@ prueba:
 | Integral definida | Límites y diferencial |
 | Vectores y unidades | `\vec`, `\hat`, `\mathrm{}` |
 | Guion con error deliberado | Validación E05, E09 o E10 |
+| Conmutador y anticonmutador | `\comm`, `\acomm`, corchetes y llaves ajustados |
+| Valor esperado y Dirac | `\expval`, `\bra`, `\ket`, `\braket` con `\middle` |
+| Índices escalonados | `\tensor`, índices superiores e inferiores en columnas |
+| Bajar y subir índices | `bajar`, `subir` con la métrica |
+| Contracción | `contraer` y convención de Einstein |
+| Renombre de índice mudo | `renombrar` en varios términos a la vez |
+| Orden de operadores | `intercambiar` y conmutador que aparece |
 
-**Casos borde (categoría `bordes`):** paso sin fórmula con solo `resaltar`; fórmula multilínea; `en-lugar` dentro de `pizarra: lineas`; referencia ambigua sin `#n` (esperado: error E10); acción v1.0 en el MVP (esperado: W02).
+**Casos borde (categoría `bordes`):** paso sin fórmula con solo `resaltar`; fórmula multilínea; `en-lugar` dentro de `pizarra: lineas`; referencia ambigua sin `#n` (esperado: error E10); acción v1.0 en el MVP (esperado: W02); `\left` sin `\right` (E13); índices libres distintos a cada lado (W06); índice repetido tres veces (W07); `paquetes: [physics]` (W08).
 
 ---
 
@@ -376,7 +491,7 @@ paso          = "##" , [ " " , titulo ] , salto ,
 linea-accion  = "::" , " " , accion , { " + " , accion } , salto ;
 accion        = verbo , { " " , argumento } ;
 argumento     = referencia | lado | numero | cadena | "{" , latex , "}" ;
-referencia    = identificador | latex-sin-espacios , [ "#" , entero ] ;
+referencia    = identificador | [ "^" | "_" ] , latex-sin-espacios , [ "#" , entero ] ;
 lado          = "izq" | "der" ;
 formula       = "$$" , latex , "$$" , salto ;
 narracion     = ">" , [ " " , texto ] , salto ;
@@ -384,9 +499,12 @@ narracion     = ">" , [ " " , texto ] , salto ;
 
 `sustituir` y `ambos-lados` toman el resto de la línea como LaTeX.
 
+`renombrar` toma dos símbolos (TEX) y, opcionalmente, una referencia que limita dónde se aplica.
+
 ---
 
 ## 13. Versionado
 
 - `tiza/0.x`: puede cambiar sin compatibilidad hacia atrás; cada cambio se anota en `docs/adr/`.
+- `tiza/0.2` (ADR 0002): agrega índices tensoriales, delimitadores con nombre, la clave `paquetes`, cinco gestos y E13, W06–W08. Es compatible con `tiza/0.1`.
 - `tiza/1.0`: congelado con la v1.0 de la app; desde ahí, solo cambios compatibles en versiones menores.
