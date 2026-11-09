@@ -42,5 +42,8 @@ jobs:
       - name: Pruebas
         run: pnpm test
 
+      - name: Corpus (tiza validar --esperado)
+        run: pnpm corpus
+
       - name: Licencias (D12)
         run: pnpm licencias
