@@ -14,8 +14,9 @@
     "formato": "prettier --write .",
     "formato:revisar": "prettier --check .",
     "test": "pnpm -r --if-present test && pnpm test:scripts",
+    "corpus": "node paquetes/guion/src/cli.ts validar --esperado corpus",
     "licencias": "node scripts/revisar-licencias.mjs",
-    "revisar": "pnpm tipos && pnpm lint && pnpm formato:revisar && pnpm test && pnpm licencias",
+    "revisar": "pnpm tipos && pnpm lint && pnpm formato:revisar && pnpm test && pnpm corpus && pnpm licencias",
     "test:scripts": "node --test \"scripts/*.test.mjs\""
   },
   "devDependencies": {
