@@ -100,6 +100,29 @@ const enReposo = p => p.waitForFunction(() => P.dir === 0 && P.tau >= DOC.steps[
   await p3.evaluate(() => document.querySelector('#evPanel').scrollIntoView());
   await p3.screenshot({ path: R + '/docs/capturas/12/evaluacion-telefono.png' });
 
+  // las instrucciones del README, de principio a fin y solo con clics y teclas, sin ?evaluar=1
+  const p4 = await b.newPage({ viewport: { width: 1280, height: 860 } });
+  await preparar(p4);   // preparar() carga ?evaluar=1; se recarga sin el parámetro
+  await p4.goto(URL.replace('&evaluar=1', '')); await p4.waitForFunction(() => window.__TIZA_READY, null, { timeout: 30000 });
+  ok(!(await p4.isVisible('#evPanel')), 'sin ?evaluar=1 el panel empieza oculto');
+  await p4.click('#bEval');
+  ok(await p4.isVisible('#evPanel') && await p4.evaluate(() => VIEW.pairs), 'el botón Evaluar muestra el panel y enciende Parejas');
+  await p4.click('#evClear'); await p4.click('#evClear');
+  await p4.click('#evNext');
+  await p4.waitForFunction(() => window.__TIZA_EVAL.evClave()?.clave === 'par 01');
+  await enReposo(p4);
+  await p4.evaluate(() => document.activeElement.blur());
+  for (let i = 1; i <= 30; i++) {
+    const id = String(i).padStart(2, '0');
+    await p4.waitForFunction(id => window.__TIZA_EVAL.evClave()?.clave === 'par ' + id, id);
+    await p4.keyboard.press(i % 10 === 0 ? 'm' : 'b');
+    if (i % 10 === 0) { await p4.keyboard.type('nota de prueba ' + id); await p4.keyboard.press('Enter'); }
+    if (i < 30) await p4.keyboard.press('n');
+  }
+  await p4.click('#evCopy');
+  const r4 = JSON.parse(await p4.inputValue('#evJson')).resumen;
+  ok(r4.marcados === 30 && r4.bien === 27 && r4.aciertos === 90 && r4.cumpleMeta === true, `README de principio a fin: 30 pares, ${r4.aciertos} % de aciertos, cumpleMeta ${r4.cumpleMeta}`);
+
   await b.close();
   console.log(fallas ? `${fallas} fallas` : 'todo bien; capturas en docs/capturas/12/');
   process.exit(fallas ? 1 : 0);
