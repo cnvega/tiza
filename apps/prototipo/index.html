@@ -49,7 +49,7 @@ input[type=range] { accent-color: var(--accent); width: 110px; }
 .main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 10px; min-height: 0; }
 @media (max-width: 860px) { .main { grid-template-columns: 1fr; } }
 
-.stage { display: grid; grid-template-rows: 1fr auto; gap: 8px; min-height: 0; min-width: 0; }
+.stage { display: grid; grid-template-rows: 1fr auto auto; gap: 8px; min-height: 0; min-width: 0; }
 .board-wrap { position: relative; min-height: 320px; border-radius: 8px; overflow: hidden; background: #24382d; box-shadow: inset 0 0 0 6px #6b4f35, inset 0 0 0 7px #3d2c1e; }
 @media (max-width: 860px) { .board-wrap { aspect-ratio: 4 / 3; min-height: 0; max-width: 100%; } }
 .board-wrap:fullscreen { border-radius: 0; box-shadow: none; }
@@ -75,6 +75,20 @@ textarea#src { width: 100%; height: 100%; box-sizing: border-box; resize: none; 
 .msg.E { color: var(--err); } .msg.W { color: var(--warn); }
 .keys { font-size: 12px; color: var(--muted); }
 kbd { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--surface); }
+/* modo evaluación (issue #12) */
+.eval { display: grid; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.eval .row select { flex: 1 1 220px; }
+.eval input[type=text] { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 14px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.eval .evlab { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.eval .evinfo { min-height: 1.4em; }
+.eval .evsum { font-variant-numeric: tabular-nums; color: var(--muted); }
+.eval .evsum b { color: var(--fg); }
+.eval .evmsg { font-size: 12.5px; color: var(--muted); }
+.eval button.ok[aria-pressed="true"] { background: var(--ok); border-color: var(--ok); color: var(--accent-ink); }
+.eval button.bad[aria-pressed="true"] { background: var(--err); border-color: var(--err); color: var(--accent-ink); }
+.eval textarea { width: 100%; box-sizing: border-box; height: 130px; font-family: var(--font-mono); font-size: 12px; color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px; resize: vertical; }
+.eval button[aria-pressed="true"] kbd { background: transparent; color: inherit; border-color: currentColor; }
+.ver-ok { color: var(--ok); font-weight: 700; } .ver-mal { color: var(--err); font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
 </style>
 
@@ -99,6 +113,7 @@ kbd { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--li
         <option value="pizarra-blanca">Pizarra blanca</option>
       </select>
       <button id="bPairs" aria-pressed="false" title="Mostrar las parejas detectadas entre pasos">Parejas</button>
+      <button id="bEval" aria-pressed="false" title="Modo evaluación: marcar cada transición como bien o mal y medir los cuadros por segundo">Evaluar</button>
       <button id="bFull" title="Pantalla completa (F)">⛶</button>
     </div>
   </header>
@@ -111,6 +126,29 @@ kbd { font-family: var(--font-mono); font-size: 11px; border: 1px solid var(--li
         <div class="loading" id="loading">Cargando tipografía matemática…</div>
       </div>
       <div class="caption" aria-live="polite"><div class="t" id="capT"></div><div class="n" id="capN"></div></div>
+      <div class="eval" id="evPanel" hidden>
+        <div class="row">
+          <label class="evlab" for="evPar">Par</label>
+          <select id="evPar" aria-label="Par de prueba"></select>
+          <button id="evPrev" title="Par anterior">◀</button>
+          <button id="evNext" title="Siguiente par (N)">Par ▶</button>
+          <button id="evRep" title="Repetir la transición (R)">Repetir</button>
+        </div>
+        <div class="evinfo" id="evInfo"></div>
+        <div class="row">
+          <button id="evB" class="ok" aria-pressed="false">Bien <kbd>B</kbd></button>
+          <button id="evM" class="bad" aria-pressed="false">Mal <kbd>M</kbd></button>
+          <input id="evNota" type="text" placeholder="Qué falló (opcional; Enter guarda)" aria-label="Nota sobre la transición">
+        </div>
+        <div class="evsum" id="evSum"></div>
+        <div class="row">
+          <button id="evShow">Ver resultado (JSON)</button>
+          <button id="evCopy" class="primary">Copiar resultado</button>
+          <button id="evClear">Borrar evaluación</button>
+          <span class="evmsg" id="evMsg" role="status"></span>
+        </div>
+        <textarea id="evJson" readonly hidden aria-label="Resultado de la evaluación en JSON"></textarea>
+      </div>
     </section>
 
     <aside>
@@ -282,6 +320,58 @@ $$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\sigma}} \tens
 `;
 const SAMPLE_NAMES = { kepler: 'Tercera ley de Kepler', caida: 'Caída libre desde el reposo', despeje: 'Despeje lineal (en el lugar)',
   conmutador: 'Conmutador [x̂, p̂] (cuántica)', covariante: 'Derivada covariante (relatividad)' };
+
+/* ---------------------------------------------------------------- pares de prueba del modo evaluación (issue #12) */
+/* <evaluacion:generado> — no editar a mano: node apps/prototipo/evaluacion/generar-pares.mjs */
+const EVAL_GUIONES = {
+  "algebra/01-despeje-lineal": "---\nformato: tiza/0.1\ntitulo: Despeje lineal\npizarra: en-lugar\nprueba:\n  objetivo: pasar con suma y con producto en modo en el lugar\n  cubre: [pasar, suma, producto, en-lugar, recuadro]\n  esperado: ok\n---\n\n## Ecuación inicial\n$$ 3x + 5 = 20 $$\n\n## El 5 pasa restando\n:: pasar 5 der\n$$ 3x = 20 - 5 $$\n\n## Restamos\n$$ 3x = 15 $$\n\n## El 3 pasa dividiendo\n:: pasar 3 der\n$$ x = \\frac{15}{3} $$\n\n## Dividimos\n$$ x = 5 $$\n:: recuadro\n> Despejamos x.\n",
+  "spec 10.1": "---\nformato: tiza/0.2\ntitulo: Despeje lineal\n---\n\n## Ecuación inicial\n$$ 3x + 5 = 20 $$\n\n## El 5 pasa restando\n:: pasar 5 der\n$$ 3x = 20 - 5 $$\n\n##\n$$ 3x = 15 $$\n\n## El 3 pasa dividiendo\n:: pasar 3 der\n$$ x = \\frac{15}{3} $$\n\n##\n$$ x = 5 $$\n> Despejamos x.\n",
+  "astrofisica/01-kepler-tercera-ley": "---\nformato: tiza/0.1\ntitulo: Tercera ley de Kepler para una órbita circular\ncurso: Astrofísica\ntema: pizarron-verde\npizarra: lineas\nsupuestos:\n  positivos: [G, M, m, r, T, v]\nprueba:\n  objetivo: cancelar con \\id, pasar desde un denominador y unión de potencias\n  cubre: [cancelar, pasar, fraccion, potencia, id, recuadro]\n  esperado: advertencia:W02\n---\n\n## Igualamos fuerzas\n$$ \\frac{G M \\id{ms}{m}}{r^2} = \\frac{\\id{mc}{m}\\, v^2}{r} $$\n> En una órbita circular, la gravedad aporta la fuerza centrípeta.\n\n## La masa del satélite se cancela\n:: cancelar ms mc\n$$ \\frac{G M}{r^2} = \\frac{v^2}{r} $$\n> La masa m aparece a ambos lados: el período no depende de ella.\n\n## Multiplicamos por r\n:: ambos-lados \\cdot r\n$$ \\frac{G M}{r} = v^2 $$\n\n## Escribimos la velocidad con el período\n:: sustituir v = \\frac{2\\pi r}{T}\n$$ \\frac{G M}{r} = \\left(\\frac{2\\pi r}{T}\\right)^2 $$\n> En una vuelta, el satélite recorre 2πr en un tiempo T.\n\n## Desarrollamos el cuadrado\n:: expandir\n$$ \\frac{G M}{r} = \\frac{4\\pi^2 r^2}{T^2} $$\n\n## T² pasa multiplicando\n:: pasar T^2 izq\n$$ \\frac{\\id{gm}{G M}}{\\id{rr}{r}}\\, T^2 = 4\\pi^2 r^2 $$\n\n## GM/r pasa dividiendo\n:: pasar \\frac{GM}{r} der\n$$ T^2 = \\frac{4\\pi^2 r^2\\, \\id{rr}{r}}{\\id{gm}{G M}} $$\n\n## Reunimos las potencias de r\n:: simplificar r\n$$ T^2 = \\frac{4\\pi^2}{G M}\\, r^3 $$\n:: recuadro\n> El cuadrado del período crece como el cubo del radio: la tercera ley de Kepler.\n",
+  "fisica/01-caida-desde-reposo": "---\nformato: tiza/0.1\ntitulo: Velocidad de caída desde el reposo\ncurso: Física general\npizarra: lineas\nsupuestos:\n  positivos: [m, g, h, v]\nprueba:\n  objetivo: \"cancelar con \\\\id, pasar con #n y aparición de una raíz\"\n  cubre: [cancelar, pasar, referencia-n, resaltar, raiz, recuadro]\n  esperado: ok\n---\n\n## Conservación de la energía\n$$ \\id{m1}{m} g h = \\frac{1}{2} \\id{m2}{m} v^2 $$\n> Toda la energía potencial se convierte en cinética.\n\n## La masa se cancela\n:: cancelar m1 m2\n$$ g h = \\frac{1}{2} v^2 $$\n\n## El 2 pasa multiplicando\n:: pasar 2#1 izq\n$$ \\id{dos}{2} g h = v^2 $$\n> El 2 del denominador pasa al otro lado multiplicando.\n\n## Sacamos raíz cuadrada\n:: resaltar v^2\n$$ v = \\sqrt{\\id{dos}{2} g h} $$\n:: recuadro\n> Como v es positiva, nos quedamos con la raíz positiva.\n",
+  "bordes/03-paquete-physics": "---\nformato: tiza/0.2\ntitulo: Velocidad con el paquete physics\npaquetes: [physics]\nprueba:\n  objetivo: activar el paquete physics debe dar W08 y componer \\dv y \\qty\n  cubre: [physics, dv, qty, pasar, parentesis-desaparecen]\n  esperado: advertencia:W08\n---\n\n## Movimiento con aceleración constante\n$$ \\dv{x}{t} = \\qty( v_0 + a t ) $$\n\n## Quitamos el paréntesis\n$$ \\dv{x}{t} = v_0 + a t $$\n\n## La velocidad inicial pasa restando\n:: pasar v_0 izq\n$$ \\dv{x}{t} - v_0 = a t $$\n",
+  "bordes/04-contraer-en-mvp": "---\nformato: tiza/0.2\ntitulo: Traza de un tensor mixto con la delta de Kronecker\nprueba:\n  objetivo: contraer es un gesto de la v1.0; en el MVP debe dar W02 y usar la transición automática\n  cubre: [contraer, tensor, delta, renombrar, indices-con-posicion]\n  esperado: advertencia:W02\n---\n\n## Contracción con la delta\n$$ S = \\tensor{T}{^\\mu_\\nu} \\delta^{\\nu}_{\\mu} $$\n\n## La delta iguala los índices\n:: contraer _\\nu ^\\nu\n$$ S = \\tensor{T}{^\\mu_\\mu} $$\n> La delta de Kronecker solo deja los términos con ν = μ.\n\n## Renombramos el índice mudo\n:: renombrar \\mu \\alpha\n$$ S = \\tensor{T}{^\\alpha_\\alpha} $$\n",
+  "bordes/05-indices-simetricos": "---\nformato: tiza/0.2\ntitulo: Contracción de un tensor simétrico\nprueba:\n  objetivo: índices μν y νμ en el mismo paso; intercambiar índices con referencias de posición y aparición\n  cubre: [intercambiar, indices-con-posicion, referencia-n, emparejamiento-indices]\n  esperado: ok\n---\n\n## Dos órdenes de índices\n$$ S = A_{\\mu\\nu} B^{\\mu\\nu} + A_{\\nu\\mu} B^{\\mu\\nu} $$\n> A es simétrico: A con νμ es igual a A con μν.\n\n## Usamos la simetría de A\n:: intercambiar _\\nu#2 _\\mu#2\n$$ S = A_{\\mu\\nu} B^{\\mu\\nu} + A_{\\mu\\nu} B^{\\mu\\nu} $$\n\n## Sumamos los términos iguales\n$$ S = 2 A_{\\mu\\nu} B^{\\mu\\nu} $$\n",
+  "cuantica/01-conmutador-posicion-momento": "---\nformato: tiza/0.2\ntitulo: Conmutador de posición y momento\ncurso: Mecánica cuántica\netiquetas: [conmutador, operadores]\npizarra: lineas\nprueba:\n  objetivo: conmutador [x̂, p̂] aplicado a una función de prueba, con sustitución, regla del producto, cancelación e intercambio de operadores\n  cubre: [comm, sustituir, cancelar, id, parentesis-ajustados, intercambiar, recuadro]\n  esperado: advertencia:W02\n---\n\n## Definición del conmutador\n$$ \\comm{\\hat{x}}{\\hat{p}} f = \\hat{x}\\hat{p} f - \\hat{p}\\hat{x} f $$\n> Aplicamos el conmutador a una función de prueba f.\n\n## Posición en su propia representación\n:: sustituir \\hat{x} = x\n$$ \\comm{\\hat{x}}{\\hat{p}} f = x \\hat{p} f - \\hat{p}\\left( x f \\right) $$\n> En la representación de posición, x̂ solo multiplica por x.\n\n## Momento como derivada\n:: sustituir \\hat{p} = -i\\hbar \\frac{d}{dx}\n$$ \\comm{\\hat{x}}{\\hat{p}} f = -i\\hbar\\, x \\frac{df}{dx} + i\\hbar \\frac{d}{dx}\\left( x f \\right) $$\n\n## Regla del producto\n$$ \\comm{\\hat{x}}{\\hat{p}} f = -i\\hbar\\, x \\frac{df}{dx} + i\\hbar \\left( f + x \\frac{df}{dx} \\right) $$\n\n## Distribuimos\n$$ \\comm{\\hat{x}}{\\hat{p}} f = \\id{a}{-i\\hbar\\, x \\frac{df}{dx}} + i\\hbar f + \\id{b}{i\\hbar\\, x \\frac{df}{dx}} $$\n\n## Los términos con la derivada se cancelan\n:: cancelar a b\n$$ \\comm{\\hat{x}}{\\hat{p}} f = i\\hbar f $$\n\n## Vale para toda f\n$$ \\comm{\\hat{x}}{\\hat{p}} = i\\hbar $$\n:: recuadro\n> Como la igualdad vale para cualquier función, la escribimos entre operadores.\n\n## Al revés cambia el signo\n:: intercambiar \\hat{x} \\hat{p}\n$$ \\comm{\\hat{p}}{\\hat{x}} = -i\\hbar $$\n> Intercambiar los operadores en el conmutador cambia su signo.\n",
+  "cuantica/02-anticonmutador-pauli": "---\nformato: tiza/0.2\ntitulo: Anticonmutador de dos matrices de Pauli\ncurso: Mecánica cuántica\netiquetas: [espín, Pauli, anticonmutador]\npizarra: en-lugar\nprueba:\n  objetivo: anticonmutador con llaves ajustadas que desaparecen y productos de matrices sustituidos\n  cubre: [acomm, llaves-ajustadas, sustituir, cancelar, id, en-lugar]\n  esperado: advertencia:W02\n---\n\n## Definición del anticonmutador\n$$ \\acomm{\\sigma_x}{\\sigma_y} = \\sigma_x \\sigma_y + \\sigma_y \\sigma_x $$\n> El anticonmutador suma los dos órdenes del producto.\n\n## Primer producto\n:: sustituir \\sigma_x \\sigma_y = i\\sigma_z\n$$ \\acomm{\\sigma_x}{\\sigma_y} = i\\sigma_z + \\sigma_y \\sigma_x $$\n\n## Segundo producto\n:: sustituir \\sigma_y \\sigma_x = -i\\sigma_z\n$$ \\acomm{\\sigma_x}{\\sigma_y} = \\id{a}{i\\sigma_z} \\id{b}{- i\\sigma_z} $$\n> En el orden inverso aparece el signo contrario.\n\n## Se cancelan\n:: cancelar a b\n$$ \\acomm{\\sigma_x}{\\sigma_y} = 0 $$\n> Las matrices de Pauli distintas anticonmutan.\n",
+  "cuantica/03-valor-esperado-braket": "---\nformato: tiza/0.2\ntitulo: Valor esperado de la energía con la identidad\ncurso: Mecánica cuántica\netiquetas: [Dirac, valor esperado, identidad]\npizarra: lineas\nprueba:\n  objetivo: valor esperado con bra-ket, inserción de la identidad y autovalores\n  cubre: [expval, braket, middle, suma, abs, resaltar, recuadro]\n  esperado: advertencia:W02\n---\n\n## Valor esperado\n$$ \\expval{\\hat{H}} = \\left\\langle \\psi \\middle| \\hat{H} \\middle| \\psi \\right\\rangle $$\n> Partimos del valor esperado del hamiltoniano en el estado ψ.\n\n## Insertamos la identidad\n$$ \\expval{\\hat{H}} = \\sum_n \\braket{\\psi | \\hat{H} | n} \\braket{n | \\psi} $$\n> Escribimos la identidad como la suma de proyectores sobre los autoestados de Ĥ.\n\n## Autovalores de la energía\n:: resaltar \\hat{H}\n$$ \\expval{\\hat{H}} = \\sum_n E_n \\braket{\\psi | n} \\braket{n | \\psi} $$\n> Ĥ actúa sobre su autoestado y deja el número E_n.\n\n## Conjugado del producto interno\n$$ \\expval{\\hat{H}} = \\sum_n E_n \\braket{n | \\psi}^* \\braket{n | \\psi} $$\n\n## Módulo al cuadrado\n$$ \\expval{\\hat{H}} = \\sum_n E_n \\abs{\\braket{n | \\psi}}^2 $$\n:: recuadro\n> Cada energía pesa con la probabilidad de medirla.\n",
+  "cuantica/04-pozo-infinito": "---\nformato: tiza/0.2\ntitulo: Energías del pozo de potencial infinito\ncurso: Mecánica cuántica\netiquetas: [Schrödinger, pozo infinito, condiciones de borde]\npizarra: lineas\nsupuestos:\n  positivos: [m, \\hbar, L, k, E]\n  reales: [x, A, B, n, \\psi]\nprueba:\n  objetivo: ecuación de Schrödinger independiente del tiempo, solución general y condiciones de borde\n  cubre: [pasar, sustituir, borrar, ambos-lados, fraccion, derivada-leibniz, recuadro]\n  esperado: advertencia:W02\n---\n\n## Ecuación de Schrödinger dentro del pozo\n$$ -\\frac{\\hbar^2}{2m} \\frac{d^2\\psi}{dx^2} = E \\psi $$\n> Dentro del pozo el potencial es cero.\n\n## Multiplicamos por −2m/ħ²\n:: ambos-lados \\cdot \\left( -\\frac{2m}{\\hbar^2} \\right)\n$$ \\frac{d^2\\psi}{dx^2} = -\\frac{2mE}{\\hbar^2} \\psi $$\n\n## Definimos k\n:: sustituir \\frac{2mE}{\\hbar^2} = k^2\n$$ \\frac{d^2\\psi}{dx^2} = -k^2 \\psi $$\n\n## Solución general\n$$ \\psi(x) = A \\sin(kx) + B \\cos(kx) $$\n> Es la ecuación de un oscilador: senos y cosenos.\n\n## Borde en x = 0\n:: borrar {B\\cos(kx)}\n$$ \\psi(x) = A \\sin(kx) $$\n> Como ψ(0) = 0, el coseno no puede estar: B = 0.\n\n## Borde en x = L\n$$ kL = n\\pi $$\n> ψ(L) = 0 y A no puede ser cero: el seno se anula, y eso ocurre en múltiplos de π.\n\n## L pasa dividiendo\n:: pasar L der\n$$ k = \\frac{n\\pi}{L} $$\n\n## Elevamos al cuadrado\n:: ambos-lados ^2\n$$ k^2 = \\frac{n^2\\pi^2}{L^2} $$\n\n## Volvemos a la energía\n:: sustituir k^2 = \\frac{2mE}{\\hbar^2}\n$$ \\frac{2mE}{\\hbar^2} = \\frac{n^2\\pi^2}{L^2} $$\n\n## Despejamos E\n:: ambos-lados \\cdot \\frac{\\hbar^2}{2m}\n$$ E = \\frac{n^2\\pi^2\\hbar^2}{2mL^2} $$\n:: recuadro\n> La energía solo toma valores discretos: está cuantizada.\n",
+  "relatividad/01-energia-momento": "---\nformato: tiza/0.2\ntitulo: Relación energía-momento desde el cuadrimomento\ncurso: Relatividad especial\netiquetas: [cuadrimomento, métrica, Minkowski]\npizarra: lineas\nsupuestos:\n  positivos: [m, c, E]\n  reales: [p, g]\nprueba:\n  objetivo: bajar un índice con la métrica, separar la parte temporal y despejar E²\n  cubre: [bajar, sustituir, pasar, referencia-n, abs, vec, parentesis-aparecen, expandir]\n  esperado: advertencia:W02\n---\n\n## Norma del cuadrimomento\n$$ p_{\\mu} p^{\\mu} = -m^2 c^2 $$\n> Con signatura (−, +, +, +), la norma del cuadrimomento es −m²c².\n\n## Bajamos el índice con la métrica\n:: bajar _\\mu\n$$ g_{\\mu\\nu} p^{\\nu} p^{\\mu} = -m^2 c^2 $$\n\n## Métrica de Minkowski\n$$ -\\left( p^{0} \\right)^2 + \\abs{\\vec{p}}^2 = -m^2 c^2 $$\n> La métrica es diagonal: solo sobreviven los términos con μ = ν.\n\n## La componente temporal es la energía\n:: sustituir p^{0} = \\frac{E}{c}\n$$ -\\frac{E^2}{c^2} + \\abs{\\vec{p}}^2 = -m^2 c^2 $$\n\n## La energía pasa al otro lado\n:: pasar \\frac{E^2}{c^2} der\n$$ \\abs{\\vec{p}}^2 = \\frac{E^2}{c^2} - m^2 c^2 $$\n\n## La masa pasa sumando\n:: pasar m^2c^2 izq\n$$ \\abs{\\vec{p}}^2 + m^2 c^2 = \\frac{E^2}{c^2} $$\n\n## c² pasa multiplicando\n:: pasar c^2#2 izq\n$$ \\left( \\abs{\\vec{p}}^2 + m^2 c^2 \\right) c^2 = E^2 $$\n\n## Distribuimos\n:: expandir\n$$ \\abs{\\vec{p}}^2 c^2 + m^2 c^4 = E^2 $$\n> Es la relación entre energía, momento y masa en reposo.\n",
+  "relatividad/02-derivada-covariante": "---\nformato: tiza/0.2\ntitulo: Divergencia covariante de un tensor mixto\ncurso: Relatividad general\netiquetas: [derivada covariante, Christoffel, índices mudos]\npizarra: lineas\nprueba:\n  objetivo: índices escalonados con \\tensor y renombre de índices mudos en toda la línea y en un solo término\n  cubre: [tensor, indices-escalonados, renombrar, id]\n  esperado: ok\n---\n\n## Conservación\n$$ \\nabla_{\\mu} \\tensor{T}{^\\mu_\\nu} = 0 $$\n> La divergencia covariante del tensor se anula.\n\n## Expandimos la derivada covariante\n$$ \\partial_{\\mu} \\tensor{T}{^\\mu_\\nu} + \\tensor{\\Gamma}{^\\mu_{\\mu\\lambda}} \\tensor{T}{^\\lambda_\\nu} - \\tensor{\\Gamma}{^\\lambda_{\\mu\\nu}} \\tensor{T}{^\\mu_\\lambda} = 0 $$\n> Un símbolo de Christoffel por cada índice: positivo para el superior, negativo para el inferior.\n\n## Renombramos λ en toda la línea\n:: renombrar \\lambda \\sigma\n$$ \\partial_{\\mu} \\tensor{T}{^\\mu_\\nu} + \\tensor{\\Gamma}{^\\mu_{\\mu\\sigma}} \\tensor{T}{^\\sigma_\\nu} - \\id{t3}{\\tensor{\\Gamma}{^\\sigma_{\\mu\\nu}} \\tensor{T}{^\\mu_\\sigma}} = 0 $$\n> λ es un índice mudo: se puede llamar de cualquier forma.\n\n## Renombramos μ solo en el último término\n:: renombrar \\mu \\rho t3\n$$ \\partial_{\\mu} \\tensor{T}{^\\mu_\\nu} + \\tensor{\\Gamma}{^\\mu_{\\mu\\sigma}} \\tensor{T}{^\\sigma_\\nu} - \\tensor{\\Gamma}{^\\sigma_{\\rho\\nu}} \\tensor{T}{^\\rho_\\sigma} = 0 $$\n> En el último término μ también es mudo; lo renombramos para no confundirlo con el del resto.\n",
+  "relatividad/04-dilatacion-tiempo": "---\nformato: tiza/0.2\ntitulo: Dilatación del tiempo desde el intervalo invariante\ncurso: Relatividad especial\netiquetas: [intervalo, tiempo propio, factor de Lorentz]\npizarra: lineas\nsupuestos:\n  positivos: [c, \\gamma, t, \\tau]\n  reales: [v, x]\nprueba:\n  objetivo: tiempo propio desde el intervalo, con factorización, raíz y factor de Lorentz\n  cubre: [sustituir, factorizar, ambos-lados, simplificar, raiz, fracciones-anidadas, recuadro]\n  esperado: advertencia:W02\n---\n\n## Intervalo para un reloj en movimiento\n$$ -c^2 \\mathrm{d}\\tau^2 = -c^2 \\mathrm{d}t^2 + \\mathrm{d}x^2 $$\n> El intervalo es el mismo en el sistema del reloj y en el del laboratorio.\n\n## El reloj se mueve con velocidad v\n:: sustituir \\mathrm{d}x = v\\, \\mathrm{d}t\n$$ -c^2 \\mathrm{d}\\tau^2 = -c^2 \\mathrm{d}t^2 + v^2 \\mathrm{d}t^2 $$\n\n## Factor común\n:: factorizar \\mathrm{d}t^2\n$$ -c^2 \\mathrm{d}\\tau^2 = -\\left( c^2 - v^2 \\right) \\mathrm{d}t^2 $$\n\n## Dividimos por −c²\n:: ambos-lados \\cdot \\left( -\\frac{1}{c^2} \\right)\n$$ \\mathrm{d}\\tau^2 = \\frac{\\left( c^2 - v^2 \\right) \\mathrm{d}t^2}{c^2} $$\n\n## Separamos la fracción\n:: simplificar\n$$ \\mathrm{d}\\tau^2 = \\left( 1 - \\frac{v^2}{c^2} \\right) \\mathrm{d}t^2 $$\n\n## Raíz cuadrada\n$$ \\mathrm{d}\\tau = \\sqrt{1 - \\frac{v^2}{c^2}}\\, \\mathrm{d}t $$\n> Los intervalos de tiempo son positivos: tomamos la raíz positiva.\n\n## La raíz pasa dividiendo\n:: pasar {\\sqrt{1-\\frac{v^2}{c^2}}} izq\n$$ \\frac{\\mathrm{d}\\tau}{\\sqrt{1 - \\frac{v^2}{c^2}}} = \\mathrm{d}t $$\n\n## Factor de Lorentz\n:: sustituir \\gamma = \\frac{1}{\\sqrt{1 - \\frac{v^2}{c^2}}}\n$$ \\gamma\\, \\mathrm{d}\\tau = \\mathrm{d}t $$\n:: recuadro\n> El reloj en movimiento marca menos tiempo: dt = γ dτ, con γ ≥ 1.\n"
+};
+const EVAL_PARES = [
+  {"id":"01","guion":"algebra/01-despeje-lineal","a":2,"desde":"Ecuación inicial","hacia":"El 5 pasa restando","prueba":"Despeje lineal: pasar con suma, en el lugar"},
+  {"id":"02","guion":"algebra/01-despeje-lineal","a":4,"desde":"Restamos","hacia":"El 3 pasa dividiendo","prueba":"Despeje lineal: pasar con producto (factor a divisor), en el lugar"},
+  {"id":"03","guion":"spec 10.1","a":2,"desde":"Ecuación inicial","hacia":"El 5 pasa restando","prueba":"Despeje lineal: pasar con suma, en líneas nuevas"},
+  {"id":"04","guion":"spec 10.1","a":3,"desde":"El 5 pasa restando","hacia":"(sin título)","prueba":"Reordenar y simplificar sin acciones (paso sin título)"},
+  {"id":"05","guion":"astrofisica/01-kepler-tercera-ley","a":2,"desde":"Igualamos fuerzas","hacia":"La masa del satélite se cancela","prueba":"Cancelación de un factor común con \\id"},
+  {"id":"06","guion":"astrofisica/01-kepler-tercera-ley","a":4,"desde":"Multiplicamos por r","hacia":"Escribimos la velocidad con el período","prueba":"Paréntesis que aparecen (\\left…\\right) y fracciones anidadas"},
+  {"id":"07","guion":"astrofisica/01-kepler-tercera-ley","a":6,"desde":"Desarrollamos el cuadrado","hacia":"T² pasa multiplicando","prueba":"Exponente que cambia de rol: T² de denominador a factor"},
+  {"id":"08","guion":"astrofisica/01-kepler-tercera-ley","a":7,"desde":"T² pasa multiplicando","hacia":"GM/r pasa dividiendo","prueba":"Término desde un denominador: fracción GM/r al otro lado"},
+  {"id":"09","guion":"astrofisica/01-kepler-tercera-ley","a":8,"desde":"GM/r pasa dividiendo","hacia":"Reunimos las potencias de r","prueba":"Potencias que se reúnen (r² · r → r³), rayas de fracción"},
+  {"id":"10","guion":"fisica/01-caida-desde-reposo","a":2,"desde":"Conservación de la energía","hacia":"La masa se cancela","prueba":"Cancelación de la masa con \\id"},
+  {"id":"11","guion":"fisica/01-caida-desde-reposo","a":3,"desde":"La masa se cancela","hacia":"El 2 pasa multiplicando","prueba":"Términos repetidos: referencia 2#1"},
+  {"id":"12","guion":"bordes/03-paquete-physics","a":2,"desde":"Movimiento con aceleración constante","hacia":"Quitamos el paréntesis","prueba":"Paréntesis que desaparecen (\\qty, paquete physics)"},
+  {"id":"13","guion":"bordes/03-paquete-physics","a":3,"desde":"Quitamos el paréntesis","hacia":"La velocidad inicial pasa restando","prueba":"Derivada de Leibniz (\\dv) y pasar v₀"},
+  {"id":"14","guion":"bordes/04-contraer-en-mvp","a":2,"desde":"Contracción con la delta","hacia":"La delta iguala los índices","prueba":"Contracción con la delta (W02: transición automática)"},
+  {"id":"15","guion":"bordes/04-contraer-en-mvp","a":3,"desde":"La delta iguala los índices","hacia":"Renombramos el índice mudo","prueba":"Renombre de índice mudo μ → α"},
+  {"id":"16","guion":"bordes/05-indices-simetricos","a":2,"desde":"Dos órdenes de índices","hacia":"Usamos la simetría de A","prueba":"Intercambiar índices con posición y aparición (_\\nu#2)"},
+  {"id":"17","guion":"bordes/05-indices-simetricos","a":3,"desde":"Usamos la simetría de A","hacia":"Sumamos los términos iguales","prueba":"Sumar términos iguales sin acciones (coeficiente 2 aparece)"},
+  {"id":"18","guion":"cuantica/01-conmutador-posicion-momento","a":2,"desde":"Definición del conmutador","hacia":"Posición en su propia representación","prueba":"Conmutador \\comm con sustitución de x̂"},
+  {"id":"19","guion":"cuantica/01-conmutador-posicion-momento","a":3,"desde":"Posición en su propia representación","hacia":"Momento como derivada","prueba":"Momento como derivada: d/dx y paréntesis ajustados"},
+  {"id":"20","guion":"cuantica/01-conmutador-posicion-momento","a":6,"desde":"Distribuimos","hacia":"Los términos con la derivada se cancelan","prueba":"Cancelar dos términos marcados con \\id"},
+  {"id":"21","guion":"cuantica/01-conmutador-posicion-momento","a":8,"desde":"Vale para toda f","hacia":"Al revés cambia el signo","prueba":"Orden de operadores: intercambiar x̂ y p̂"},
+  {"id":"22","guion":"cuantica/02-anticonmutador-pauli","a":2,"desde":"Definición del anticonmutador","hacia":"Primer producto","prueba":"Anticonmutador \\acomm y llaves ajustadas, en el lugar"},
+  {"id":"23","guion":"cuantica/02-anticonmutador-pauli","a":4,"desde":"Segundo producto","hacia":"Se cancelan","prueba":"Cancelar en el lugar con \\id"},
+  {"id":"24","guion":"cuantica/03-valor-esperado-braket","a":2,"desde":"Valor esperado","hacia":"Insertamos la identidad","prueba":"Valor esperado y Dirac: \\expval, \\braket con \\middle, suma"},
+  {"id":"25","guion":"cuantica/04-pozo-infinito","a":2,"desde":"Ecuación de Schrödinger dentro del pozo","hacia":"Multiplicamos por −2m/ħ²","prueba":"Ambos lados por una fracción con paréntesis; derivada de Leibniz"},
+  {"id":"26","guion":"relatividad/01-energia-momento","a":2,"desde":"Norma del cuadrimomento","hacia":"Bajamos el índice con la métrica","prueba":"Bajar un índice con la métrica (W02: transición automática)"},
+  {"id":"27","guion":"relatividad/01-energia-momento","a":7,"desde":"La masa pasa sumando","hacia":"c² pasa multiplicando","prueba":"Términos repetidos: pasar c^2#2"},
+  {"id":"28","guion":"relatividad/02-derivada-covariante","a":3,"desde":"Expandimos la derivada covariante","hacia":"Renombramos λ en toda la línea","prueba":"Índices escalonados (\\tensor) y renombrar λ en varios términos"},
+  {"id":"29","guion":"relatividad/02-derivada-covariante","a":4,"desde":"Renombramos λ en toda la línea","hacia":"Renombramos μ solo en el último término","prueba":"Renombrar μ solo en un término (referencia t3)"},
+  {"id":"30","guion":"relatividad/04-dilatacion-tiempo","a":7,"desde":"Raíz cuadrada","hacia":"La raíz pasa dividiendo","prueba":"Raíz que pasa dividiendo; fracciones anidadas"}
+];
+/* </evaluacion:generado> */
 
 /* ---------------------------------------------------------------- constantes */
 const VERBS = {
@@ -1086,20 +1176,24 @@ function tick(now) {
   const dt = P.last ? Math.min(0.05, (now - P.last) / 1000) : 0; P.last = now;
   if (DOC && DOC.steps.length) {
     const st = DOC.steps[P.k];
+    const midiendo = P.dir > 0;
+    if (midiendo) fpsCuadro(now); else FPS.prevNow = 0;
     if (P.dir > 0) { P.tau += dt * P.speed; if (P.tau >= st.sch.T) { P.tau = st.sch.T; P.dir = 0; onRest(); } }
     else if (P.dir < 0) { P.tau -= dt * P.speed * 1.6; if (P.tau <= 0) { P.dir = 0; if (P.k > 0) { P.k--; P.tau = DOC.steps[P.k].sch.T; } else P.tau = 0; onRest(); } }
     else if (P.auto && P.k < DOC.steps.length - 1) { P.wait += dt * P.speed; if (P.wait > 0.6) { P.wait = 0; next(); } }
+    const t0 = performance.now();
     frame(P.k, P.tau);
+    if (midiendo && FPS.cur) FPS.cur.costo.push(performance.now() - t0);
     updateHud();
   }
   if (P.dir !== 0 || (P.auto && DOC && P.k < DOC.steps.length - 1) || needDraw) { needDraw = false; rafOn = true; requestAnimationFrame(tick); }
   else P.last = 0;
 }
-function onRest() { updateCaption(); renderDiag(); if (P.auto && P.k >= DOC.steps.length - 1) setAuto(false); }
+function onRest() { fpsCerrar(); updateCaption(); renderDiag(); if (P.auto && P.k >= DOC.steps.length - 1) setAuto(false); }
 function next() {
   if (!DOC || !DOC.steps.length) return;
   const st = DOC.steps[P.k];
-  if (P.dir > 0 || P.tau < st.sch.T) { P.tau = st.sch.T; P.dir = 0; onRest(); requestDraw(); return; }  // completar el paso en curso
+  if (P.dir > 0 || P.tau < st.sch.T) { if (FPS.cur) FPS.cur.saltado = true; P.tau = st.sch.T; P.dir = 0; onRest(); requestDraw(); return; }  // completar el paso en curso
   if (P.k < DOC.steps.length - 1) { P.k++; P.tau = 0; P.dir = 1; updateCaption(); renderDiag(); requestDraw(); wake(); }
 }
 function prev() {
@@ -1119,7 +1213,7 @@ function esc(s) { return String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<':
 function updateHud() {
   if (!DOC || !DOC.steps.length) return;
   const tot = DOC.steps.reduce((a, s) => a + s.sch.T, 0) / P.speed;
-  $('#hud').textContent = `Paso ${P.k + 1} de ${DOC.steps.length} · duración total ≈ ${tot.toFixed(0)} s a ${P.speed}×`;
+  $('#hud').textContent = `Paso ${P.k + 1} de ${DOC.steps.length} · duración total ≈ ${tot.toFixed(0)} s a ${P.speed}×` + (EV.on ? ' · ' + fpsTexto() : '');
 }
 function updateCaption() {
   if (!DOC || !DOC.steps.length) { $('#capT').textContent = ''; $('#capN').textContent = ''; return; }
@@ -1141,8 +1235,9 @@ function renderDiag() {
     const msgs = s.diags.map(dg => `<span class="msg ${dg.lv}">${dg.code} · línea ${dg.line}: ${esc(dg.msg)}</span>`).join('');
     return `<li class="${i === P.k ? 'cur' : ''}">${esc(s.titulo || '(sin título)')}<span class="stats">${statLine} · ${s.sch.T.toFixed(1)} s</span>${msgs}</li>`;
   }).join('') + '</ol>';
-  html += `<p class="keys" style="margin:10px 0 0">Teclas: <kbd>→</kbd> o <kbd>espacio</kbd> avanzar · <kbd>←</kbd> retroceder · <kbd>P</kbd> automático · <kbd>F</kbd> pantalla completa · <kbd>Inicio</kbd> reiniciar. Con <b>Parejas</b>: azul = por \\id, amarillo = por acción, violeta = automática; cuadros rojos salen, círculos verdes entran.</p>`;
+  html += `<p class="keys" style="margin:10px 0 0">Teclas: <kbd>→</kbd> o <kbd>espacio</kbd> avanzar · <kbd>←</kbd> retroceder · <kbd>P</kbd> automático · <kbd>F</kbd> pantalla completa · <kbd>Inicio</kbd> reiniciar. Con <b>Parejas</b>: azul = por \\id, amarillo = por acción, violeta = automática; cuadros rojos salen, círculos verdes entran.${EV.on ? ' En modo evaluación: <kbd>B</kbd> bien · <kbd>M</kbd> mal · <kbd>N</kbd> siguiente par · <kbd>R</kbd> repetir.' : ''}</p>`;
   box.innerHTML = html;
+  if (EV.on) renderEval();
 }
 
 async function apply() {
@@ -1163,10 +1258,15 @@ let themeTouched = false, speedTouched = false;
 function initUI() {
   const sel = $('#sample');
   for (const k of Object.keys(SAMPLES)) { const o = document.createElement('option'); o.value = k; o.textContent = SAMPLE_NAMES[k]; sel.appendChild(o); }
+  const grp = document.createElement('optgroup'); grp.label = 'Guiones de los pares de prueba';
+  for (const k of Object.keys(EVAL_GUIONES)) { const o = document.createElement('option'); o.value = 'corpus:' + k; o.textContent = k.startsWith('spec ') ? 'Especificación ' + k.slice(5) : k; grp.appendChild(o); }
+  sel.appendChild(grp);
   const o = document.createElement('option'); o.value = 'propio'; o.textContent = 'Mi guion (editado)'; sel.appendChild(o);
   let saved = null; try { saved = localStorage.getItem('tiza-src'); } catch (e) {}
-  if (saved && !Object.values(SAMPLES).includes(saved)) { $('#src').value = saved; sel.value = 'propio'; } else { $('#src').value = SAMPLES.kepler; sel.value = 'kepler'; }
-  sel.addEventListener('change', () => { if (SAMPLES[sel.value]) { $('#src').value = SAMPLES[sel.value]; themeTouched = false; apply(); } });
+  const guionDe = v => SAMPLES[v] ?? (v.startsWith('corpus:') ? EVAL_GUIONES[v.slice(7)] : undefined);
+  const savedKey = saved && [...sel.options].find(op => guionDe(op.value) === saved)?.value;
+  if (saved && !savedKey) { $('#src').value = saved; sel.value = 'propio'; } else if (savedKey) { $('#src').value = saved; sel.value = savedKey; } else { $('#src').value = SAMPLES.kepler; sel.value = 'kepler'; }
+  sel.addEventListener('change', () => { const g = guionDe(sel.value); if (g !== undefined) { $('#src').value = g; themeTouched = false; apply(); } });
   $('#src').addEventListener('input', () => { sel.value = 'propio'; });
   $('#bApply').addEventListener('click', apply);
   $('#bNext').addEventListener('click', next);
@@ -1181,6 +1281,13 @@ function initUI() {
   canvas.addEventListener('click', next);
   document.addEventListener('keydown', e => {
     if (e.target.closest('textarea, input, select')) return;
+    if (EV.on && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const k = e.key.toLowerCase();
+      if (k === 'b') { e.preventDefault(); evMarcar('bien'); return; }
+      if (k === 'm') { e.preventDefault(); evMarcar('mal'); return; }
+      if (k === 'n') { e.preventDefault(); evSiguiente(1); return; }
+      if (k === 'r') { e.preventDefault(); evRepetir(); return; }
+    }
     if (['ArrowRight', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); next(); }
     else if (['ArrowLeft', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); prev(); }
     else if (e.key === 'Home') { e.preventDefault(); restart(); }
@@ -1188,7 +1295,189 @@ function initUI() {
     else if (e.key.toLowerCase() === 'f') $('#bFull').click();
   });
   new ResizeObserver(resize).observe($('#boardWrap'));
+  initEval();
 }
+
+/* ---------------------------------------------------------------- modo evaluación (issue #12)
+   El evaluador marca cada transición como «bien» o «mal» con la vista Parejas activa y puede anotar
+   qué falló. Mientras dura cada transición se miden los cuadros por segundo (promedio y percentil 5).
+   El resultado se guarda en localStorage y se copia como JSON: el artefacto publicado no permite
+   descargas ni diálogos, así que no se usan. */
+const EV_STORE = 'tiza-evaluacion';
+const EV = { on: false, marcas: {}, idx: -1, clave: null, borrar: 0 };
+const FPS = { cur: null, prevNow: 0, last: null, byKey: {} };
+
+function fpsCuadro(now) {   // se llama en cada cuadro de una transición hacia adelante
+  if (!FPS.cur || FPS.cur.k !== P.k) { FPS.cur = { k: P.k, ints: [], costo: [], saltado: false }; FPS.prevNow = 0; }
+  if (FPS.prevNow) FPS.cur.ints.push(now - FPS.prevNow);
+  FPS.prevNow = now;
+}
+function fpsStats(c) {
+  const ints = c.ints.slice().sort((a, b) => a - b), n = ints.length;
+  if (n < 3) return null;
+  const media = ints.reduce((a, b) => a + b, 0) / n;
+  const p95 = ints[Math.min(n - 1, Math.floor(0.95 * (n - 1) + 0.5))];   // intervalo largo del 5 % peor
+  const costo = c.costo.length ? c.costo.reduce((a, b) => a + b, 0) / c.costo.length : 0;
+  const r1 = x => Math.round(x * 10) / 10;
+  return { promedio: r1(1000 / media), p5: r1(1000 / p95), cuadros: n + 1, costoMs: r1(costo), costoMaxMs: r1(Math.max(0, ...c.costo)), completa: !c.saltado };
+}
+function fpsCerrar() {
+  const c = FPS.cur; FPS.cur = null; FPS.prevNow = 0;
+  if (!c || c.k !== P.k) return;
+  const r = fpsStats(c); if (!r) return;
+  FPS.last = r;
+  const cl = evClave(); if (!cl) return;
+  // una transición saltada no reemplaza una medición completa
+  if (!FPS.byKey[cl.clave] || r.completa || !FPS.byKey[cl.clave].completa) FPS.byKey[cl.clave] = r;
+  const m = EV.marcas[cl.clave]; if (m) { m.fps = FPS.byKey[cl.clave]; evGuardar(); }
+}
+function fpsTexto() {
+  const c = FPS.cur && FPS.cur.k === P.k ? fpsStats(FPS.cur) : null;
+  const r = c || FPS.last;
+  return r ? `${r.promedio.toFixed(0)} fps (p5 ${r.p5.toFixed(0)})${c ? '' : ' en la última transición'}` : 'fps: —';
+}
+
+// transición actual: del paso P.k (base 1) al P.k + 1; es un par de la lista si el guion es el mismo
+function evClave() {
+  if (!DOC || !DOC.steps.length || P.k < 1) return null;
+  const src = $('#src').value;
+  const par = EVAL_PARES.find(p => EVAL_GUIONES[p.guion] === src && p.a - 1 === P.k) || null;
+  if (par) return { clave: 'par ' + par.id, par };
+  return { clave: `${DOC.header.titulo || 'guion sin título'} · ${P.k} → ${P.k + 1}`, par: null };
+}
+function evGuardar() { try { localStorage.setItem(EV_STORE, JSON.stringify({ marcas: EV.marcas })); } catch (e) {} }
+function evCargar() { try { const d = JSON.parse(localStorage.getItem(EV_STORE) || 'null'); if (d && d.marcas) EV.marcas = d.marcas; } catch (e) {} }
+function evMsg(t) { $('#evMsg').textContent = t; }
+
+function evMarcar(v) {
+  const cl = evClave();
+  if (!cl) { evMsg('El paso 1 no tiene transición: avanza al paso 2 o elige un par.'); return; }
+  const st = DOC.steps[P.k], T = st.trans, prev = DOC.steps[P.k - 1];
+  const nota = $('#evNota').value.trim();
+  EV.marcas[cl.clave] = {
+    clave: cl.clave, par: cl.par ? cl.par.id : null, guion: cl.par ? cl.par.guion : null,
+    titulo: DOC.header.titulo || '', transicion: `${P.k} → ${P.k + 1}`,
+    desde: prev.titulo || '(sin título)', hacia: st.titulo || '(sin título)',
+    veredicto: v, nota,
+    parejas: { total: T.pairs.length, id: T.stats.id, accion: T.stats.accion, auto: T.stats.auto, salen: T.exits.length, entran: T.entries.length },
+    enLugar: !!st.inPlace, modo: DOC.boardMode, velocidad: P.speed,
+    fps: FPS.byKey[cl.clave] || null, fecha: new Date().toISOString()
+  };
+  evGuardar(); renderEval();
+  evMsg(`${cl.par ? 'Par ' + cl.par.id : 'Transición'} marcado «${v}».${v === 'mal' ? ' Escribe qué falló y pulsa Enter.' : ' N: siguiente par.'}`);
+  if (v === 'mal') $('#evNota').focus();
+}
+function evNotaGuardar() {
+  const cl = evClave(), m = cl && EV.marcas[cl.clave];
+  if (!m) { evMsg('Marca primero B o M; la nota se guarda con la marca.'); return; }
+  m.nota = $('#evNota').value.trim(); evGuardar(); renderEval(); evMsg('Nota guardada.'); $('#evNota').blur();
+}
+
+async function evIr(i) {
+  if (i < 0 || i >= EVAL_PARES.length) return;
+  const par = EVAL_PARES[i]; EV.idx = i;
+  const sel = $('#sample'); $('#src').value = EVAL_GUIONES[par.guion]; sel.value = 'corpus:' + par.guion; themeTouched = false;
+  P.auto = false; $('#bAuto').setAttribute('aria-pressed', false);
+  await apply();
+  // quieto en el paso anterior; la transición empieza enseguida
+  P.k = par.a - 1; P.tau = 0; P.dir = 0; FPS.cur = null; FPS.last = null;
+  updateCaption(); renderDiag(); requestDraw();
+  const k = P.k;
+  setTimeout(() => { if (P.k === k && P.tau === 0 && P.dir === 0) { P.dir = 1; requestDraw(); } }, 450);
+}
+function evSiguiente(d) {
+  const cl = evClave();
+  const i = cl && cl.par ? EVAL_PARES.indexOf(cl.par) : EV.idx;
+  if (i < 0 && d > 0) { const j = EVAL_PARES.findIndex(p => !EV.marcas['par ' + p.id]); evIr(j < 0 ? 0 : j); return; }
+  const j = i + d;
+  if (j >= EVAL_PARES.length) { evMsg('Era el último par. Copia el resultado y pégalo en el issue de la prueba en sala.'); return; }
+  evIr(Math.max(0, j));
+}
+function evRepetir() { if (!DOC || P.k < 1) return; P.tau = 0; P.dir = 1; FPS.cur = null; updateCaption(); requestDraw(); }
+
+function evResultado() {
+  const marcas = Object.values(EV.marcas);
+  const pares = marcas.filter(m => m.par);
+  const bien = pares.filter(m => m.veredicto === 'bien').length;
+  const conFps = marcas.filter(m => m.fps);
+  const r1 = x => Math.round(x * 10) / 10;
+  return {
+    formato: 'tiza-evaluacion/1',
+    prototipo: 'F0', fecha: new Date().toISOString(),
+    navegador: navigator.userAgent,
+    pantalla: { ancho: innerWidth, alto: innerHeight, dpr: devicePixelRatio, lienzo: [canvas.width, canvas.height] },
+    resumen: {
+      pares: EVAL_PARES.length, marcados: pares.length, bien, mal: pares.length - bien,
+      aciertos: pares.length ? r1(100 * bien / pares.length) : null, meta: 80,
+      cumpleMeta: pares.length === EVAL_PARES.length ? 100 * bien / pares.length >= 80 : null,
+      otrasTransiciones: marcas.length - pares.length,
+      fps: conFps.length ? { promedio: r1(conFps.reduce((a, m) => a + m.fps.promedio, 0) / conFps.length), p5Peor: Math.min(...conFps.map(m => m.fps.p5)), transiciones: conFps.length } : null
+    },
+    marcas: marcas.sort((a, b) => (a.par || 'zz').localeCompare(b.par || 'zz') || a.fecha.localeCompare(b.fecha))
+  };
+}
+function evMostrar() { const ta = $('#evJson'); ta.value = JSON.stringify(evResultado(), null, 2); ta.hidden = false; }
+async function evCopiar() {
+  evMostrar();
+  const ta = $('#evJson'), txt = ta.value; let ok = false;
+  try { await navigator.clipboard.writeText(txt); ok = true; } catch (e) {}
+  if (!ok) { ta.focus(); ta.select(); try { ok = document.execCommand('copy'); } catch (e) {} }
+  evMsg(ok ? 'Resultado copiado: pégalo en el issue de la prueba en sala.' : 'No se pudo copiar solo: el texto quedó seleccionado; cópialo con Ctrl+C (⌘C en Mac).');
+}
+function evBorrar() {   // dos clics, sin diálogos
+  const b = $('#evClear');
+  if (Date.now() - EV.borrar > 4000) { EV.borrar = Date.now(); b.textContent = '¿Seguro? Clic otra vez'; setTimeout(() => { b.textContent = 'Borrar evaluación'; }, 4000); return; }
+  EV.borrar = 0; EV.marcas = {}; FPS.byKey = {}; evGuardar(); b.textContent = 'Borrar evaluación'; $('#evJson').hidden = true; renderEval(); evMsg('Evaluación borrada.');
+}
+
+function renderEval() {
+  if (!EV.on) return;
+  const sel = $('#evPar'), cl = evClave();
+  EVAL_PARES.forEach((p, i) => {
+    const m = EV.marcas['par ' + p.id], o = sel.options[i + 1];
+    o.textContent = `${m ? (m.veredicto === 'bien' ? '✓' : '✗') : '·'} ${p.id} · ${p.guion.split('/').pop().replace(/^\d+-/, '')} · ${p.a - 1}→${p.a} ${p.hacia}`;
+  });
+  sel.value = cl && cl.par ? String(EVAL_PARES.indexOf(cl.par)) : '';
+  const m = cl && EV.marcas[cl.clave];
+  let info;
+  if (!cl) info = 'Paso 1: aún no hay transición. Elige un par o avanza con →.';
+  else info = (cl.par ? `<b>Par ${cl.par.id} de ${EVAL_PARES.length}</b> · ${esc(cl.par.prueba)}` : `<b>Transición libre</b> · ${esc(cl.clave)}`) +
+    ` · ${m ? `<span class="${m.veredicto === 'bien' ? 'ver-ok' : 'ver-mal'}">${m.veredicto}</span>` : 'sin marcar'}`;
+  $('#evInfo').innerHTML = info;
+  $('#evB').setAttribute('aria-pressed', !!m && m.veredicto === 'bien');
+  $('#evM').setAttribute('aria-pressed', !!m && m.veredicto === 'mal');
+  if (EV.clave !== (cl && cl.clave)) { EV.clave = cl && cl.clave; $('#evNota').value = m ? m.nota : ''; }
+  const r = evResultado().resumen;
+  $('#evSum').innerHTML = `Pares marcados <b>${r.marcados} de ${r.pares}</b> · bien ${r.bien} · mal ${r.mal} · aciertos <b>${r.aciertos === null ? '—' : r.aciertos + ' %'}</b> (meta ${r.meta} %)` +
+    (r.otrasTransiciones ? ` · otras transiciones ${r.otrasTransiciones}` : '') +
+    (r.fps ? ` · fps promedio <b>${r.fps.promedio}</b>, p5 peor <b>${r.fps.p5Peor}</b>` : '');
+  if (!$('#evJson').hidden) evMostrar();
+}
+function setEval(on) {
+  EV.on = on; $('#bEval').setAttribute('aria-pressed', on); $('#evPanel').hidden = !on;
+  if (on) { VIEW.pairs = true; $('#bPairs').setAttribute('aria-pressed', true); }
+  renderDiag(); updateHud(); requestDraw();
+}
+function initEval() {
+  evCargar();
+  const sel = $('#evPar');
+  sel.appendChild(Object.assign(document.createElement('option'), { value: '', textContent: '— elige un par —' }));
+  EVAL_PARES.forEach((p, i) => sel.appendChild(Object.assign(document.createElement('option'), { value: String(i) })));
+  sel.addEventListener('change', () => { if (sel.value !== '') evIr(+sel.value); });
+  $('#evPrev').addEventListener('click', () => evSiguiente(-1));
+  $('#evNext').addEventListener('click', () => evSiguiente(1));
+  $('#evRep').addEventListener('click', evRepetir);
+  $('#evB').addEventListener('click', () => evMarcar('bien'));
+  $('#evM').addEventListener('click', () => evMarcar('mal'));
+  $('#evNota').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); evNotaGuardar(); } else if (e.key === 'Escape') e.target.blur(); });
+  $('#evShow').addEventListener('click', () => { const ta = $('#evJson'); if (ta.hidden) evMostrar(); else ta.hidden = true; });
+  $('#evCopy').addEventListener('click', evCopiar);
+  $('#evClear').addEventListener('click', evBorrar);
+  $('#bEval').addEventListener('click', () => setEval(!EV.on));
+  const q = new URLSearchParams(location.search).get('evaluar');
+  if (q !== null && q !== '0') setEval(true);
+}
+window.__TIZA_EVAL = { EV, FPS, evIr, evMarcar, evResultado, evClave, setEval };
 
 /* ---------------------------------------------------------------- arranque */
 mjHost = document.createElement('div');

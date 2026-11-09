@@ -48,6 +48,12 @@ node prueba-aceptacion.cjs
 
 Carga los ejemplos 10.1–10.4 de la especificación, los guiones de `corpus/` y casos de `intercambiar`, E13, W08 y referencias con posición; comprueba que `renombrar \lambda \sigma` en 10.4 da 4 transformaciones sin salidas ni entradas, y deja capturas en `docs/capturas/9/`. Sirve js-yaml desde `node_modules` y no pide Google Fonts.
 
+## Modo evaluación (issue #12)
+
+Botón **Evaluar** (o `?evaluar=1`): con la vista Parejas activa, se marca cada transición con <kbd>B</kbd> (bien) o <kbd>M</kbd> (mal, con nota), se mide la fluidez (fps promedio y percentil 5, en el HUD) y el resultado se copia como JSON; se guarda en `localStorage`. Trae 30 pares de prueba del corpus y la especificación, cargables desde el selector **Par**. Instrucciones para la prueba en sala: [`evaluacion/README.md`](evaluacion/README.md); lista: [`evaluacion/pares.md`](evaluacion/pares.md).
+
+Los guiones de los pares van incrustados en `index.html` (el artefacto publicado no lee el repositorio). Si cambias el corpus o la lista, corre `node apps/prototipo/evaluacion/generar-pares.mjs` desde la raíz.
+
 ## Observaciones de la prueba (2026-11-07)
 
 - Kepler (8 pasos), caída libre (4) y despeje (5): sin errores; emparejamientos correctos en todas las transiciones revisadas.
