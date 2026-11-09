@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { esFormatoAdmitido, FORMATOS_ADMITIDOS } from "./index.js";
+import { esFormatoAdmitido, FORMATOS_ADMITIDOS } from "./index.ts";
 
 describe("esFormatoAdmitido", () => {
   it("acepta tiza/0.1 y tiza/0.2", () => {
