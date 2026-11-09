@@ -1,0 +1,63 @@
+{
+  "version": "tiza-verificacion/0.1",
+  "archivo": "corpus/bordes/01-paso-no-equivalente.tiza",
+  "formato": "tiza/0.2",
+  "pasos": [
+    {
+      "id": "p1",
+      "linea": 11,
+      "estado": "verificado",
+      "metodo": "premisa",
+      "mensaje": "Punto de partida: se acepta sin comparar.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p2",
+      "linea": 14,
+      "estado": "no-equivalente",
+      "metodo": "factor",
+      "mensaje": "Las ecuaciones no tienen las mismas soluciones.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": {
+        "punto": {
+          "x": 3.0
+        },
+        "anterior": 0.0,
+        "actual": -8.0
+      }
+    },
+    {
+      "id": "p3",
+      "linea": 19,
+      "estado": "verificado",
+      "metodo": "lados",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p4",
+      "linea": 22,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "Ecuación multiplicada por una constante distinta de cero.",
+      "factor": "\\frac{1}{2}",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p5",
+      "linea": 26,
+      "estado": "verificado",
+      "metodo": "lados",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    }
+  ]
+}

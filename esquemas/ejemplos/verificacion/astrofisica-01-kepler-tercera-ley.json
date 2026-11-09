@@ -1,0 +1,87 @@
+{
+  "version": "tiza-verificacion/0.1",
+  "archivo": "corpus/astrofisica/01-kepler-tercera-ley.tiza",
+  "formato": "tiza/0.1",
+  "pasos": [
+    {
+      "id": "p1",
+      "linea": 15,
+      "estado": "verificado",
+      "metodo": "premisa",
+      "mensaje": "Punto de partida: se acepta sin comparar.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p2",
+      "linea": 19,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "El factor entre ecuaciones no se anula con los supuestos declarados.",
+      "factor": "\\frac{1}{m}",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p3",
+      "linea": 24,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "El factor entre ecuaciones no se anula con los supuestos declarados.",
+      "factor": "r",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p4",
+      "linea": 28,
+      "estado": "verificado",
+      "metodo": "sustitucion",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p5",
+      "linea": 33,
+      "estado": "verificado",
+      "metodo": "lados",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p6",
+      "linea": 37,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "El factor entre ecuaciones no se anula con los supuestos declarados.",
+      "factor": "T^{2}",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p7",
+      "linea": 41,
+      "estado": "verificado",
+      "metodo": "factor",
+      "mensaje": "El factor entre ecuaciones no se anula con los supuestos declarados.",
+      "factor": "\\frac{r}{G M}",
+      "condicion": null,
+      "discrepancia": null
+    },
+    {
+      "id": "p8",
+      "linea": 45,
+      "estado": "verificado",
+      "metodo": "lados",
+      "mensaje": "Cada lado se reescribe de forma equivalente.",
+      "factor": null,
+      "condicion": null,
+      "discrepancia": null
+    }
+  ]
+}
