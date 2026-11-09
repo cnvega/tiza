@@ -1,0 +1,104 @@
+{
+  "formato": "tiza/0.1",
+  "titulo": "Despeje lineal",
+  "etiquetas": [],
+  "tema": "pizarron-verde",
+  "ritmo": 1.0,
+  "pizarra": "en-lugar",
+  "alinear": "=",
+  "idioma": "es",
+  "paquetes": [],
+  "macros": "",
+  "supuestos": {
+    "positivos": [],
+    "reales": [],
+    "no-nulos": []
+  },
+  "pasos": [
+    {
+      "id": "p1",
+      "titulo": "Ecuación inicial",
+      "latex": "3x + 5 = 20",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [],
+      "narracion": "",
+      "linea": 11
+    },
+    {
+      "id": "p2",
+      "titulo": "El 5 pasa restando",
+      "latex": "3x = 20 - 5",
+      "modo": "en-lugar",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 15,
+          "acciones": [
+            {
+              "verbo": "pasar",
+              "objetivos": ["5"],
+              "lado": "der"
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 14
+    },
+    {
+      "id": "p3",
+      "titulo": "Restamos",
+      "latex": "3x = 15",
+      "modo": "en-lugar",
+      "ids": [],
+      "compases": [],
+      "narracion": "",
+      "linea": 18
+    },
+    {
+      "id": "p4",
+      "titulo": "El 3 pasa dividiendo",
+      "latex": "x = \\frac{15}{3}",
+      "modo": "en-lugar",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 22,
+          "acciones": [
+            {
+              "verbo": "pasar",
+              "objetivos": ["3"],
+              "lado": "der"
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 21
+    },
+    {
+      "id": "p5",
+      "titulo": "Dividimos",
+      "latex": "x = 5",
+      "modo": "en-lugar",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "posterior",
+          "linea": 27,
+          "acciones": [
+            {
+              "verbo": "recuadro",
+              "objetivos": []
+            }
+          ]
+        }
+      ],
+      "narracion": "Despejamos x.",
+      "linea": 25
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "formato": "tiza/0.1",
+  "titulo": "Tercera ley de Kepler para una órbita circular",
+  "curso": "Astrofísica",
+  "etiquetas": [],
+  "tema": "pizarron-verde",
+  "ritmo": 1.0,
+  "pizarra": "lineas",
+  "alinear": "=",
+  "idioma": "es",
+  "paquetes": [],
+  "macros": "",
+  "supuestos": {
+    "positivos": ["G", "M", "m", "r", "T", "v"],
+    "reales": [],
+    "no-nulos": []
+  },
+  "pasos": [
+    {
+      "id": "p1",
+      "titulo": "Igualamos fuerzas",
+      "latex": "\\frac{G M \\id{ms}{m}}{r^2} = \\frac{\\id{mc}{m}\\, v^2}{r}",
+      "modo": "nueva-linea",
+      "ids": ["ms", "mc"],
+      "compases": [],
+      "narracion": "En una órbita circular, la gravedad aporta la fuerza centrípeta.",
+      "linea": 15
+    },
+    {
+      "id": "p2",
+      "titulo": "La masa del satélite se cancela",
+      "latex": "\\frac{G M}{r^2} = \\frac{v^2}{r}",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 20,
+          "acciones": [
+            {
+              "verbo": "cancelar",
+              "objetivos": ["ms", "mc"]
+            }
+          ]
+        }
+      ],
+      "narracion": "La masa m aparece a ambos lados: el período no depende de ella.",
+      "linea": 19
+    },
+    {
+      "id": "p3",
+      "titulo": "Multiplicamos por r",
+      "latex": "\\frac{G M}{r} = v^2",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 25,
+          "acciones": [
+            {
+              "verbo": "ambos-lados",
+              "tex": "\\cdot r"
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 24
+    },
+    {
+      "id": "p4",
+      "titulo": "Escribimos la velocidad con el período",
+      "latex": "\\frac{G M}{r} = \\left(\\frac{2\\pi r}{T}\\right)^2",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 29,
+          "acciones": [
+            {
+              "verbo": "sustituir",
+              "de": "v",
+              "a": "\\frac{2\\pi r}{T}"
+            }
+          ]
+        }
+      ],
+      "narracion": "En una vuelta, el satélite recorre 2πr en un tiempo T.",
+      "linea": 28
+    },
+    {
+      "id": "p5",
+      "titulo": "Desarrollamos el cuadrado",
+      "latex": "\\frac{G M}{r} = \\frac{4\\pi^2 r^2}{T^2}",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 34,
+          "acciones": [
+            {
+              "verbo": "expandir",
+              "objetivos": []
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 33
+    },
+    {
+      "id": "p6",
+      "titulo": "T² pasa multiplicando",
+      "latex": "\\frac{\\id{gm}{G M}}{\\id{rr}{r}}\\, T^2 = 4\\pi^2 r^2",
+      "modo": "nueva-linea",
+      "ids": ["gm", "rr"],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 38,
+          "acciones": [
+            {
+              "verbo": "pasar",
+              "objetivos": ["T^2"],
+              "lado": "izq"
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 37
+    },
+    {
+      "id": "p7",
+      "titulo": "GM/r pasa dividiendo",
+      "latex": "T^2 = \\frac{4\\pi^2 r^2\\, \\id{rr}{r}}{\\id{gm}{G M}}",
+      "modo": "nueva-linea",
+      "ids": ["rr", "gm"],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 42,
+          "acciones": [
+            {
+              "verbo": "pasar",
+              "objetivos": ["\\frac{GM}{r}"],
+              "lado": "der"
+            }
+          ]
+        }
+      ],
+      "narracion": "",
+      "linea": 41
+    },
+    {
+      "id": "p8",
+      "titulo": "Reunimos las potencias de r",
+      "latex": "T^2 = \\frac{4\\pi^2}{G M}\\, r^3",
+      "modo": "nueva-linea",
+      "ids": [],
+      "compases": [
+        {
+          "posicion": "previa",
+          "linea": 46,
+          "acciones": [
+            {
+              "verbo": "simplificar",
+              "objetivos": ["r"]
+            }
+          ]
+        },
+        {
+          "posicion": "posterior",
+          "linea": 48,
+          "acciones": [
+            {
+              "verbo": "recuadro",
+              "objetivos": []
+            }
+          ]
+        }
+      ],
+      "narracion": "El cuadrado del período crece como el cubo del radio: la tercera ley de Kepler.",
+      "linea": 45
+    }
+  ]
+}
