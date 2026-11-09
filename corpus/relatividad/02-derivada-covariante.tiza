@@ -1,0 +1,29 @@
+---
+formato: tiza/0.2
+titulo: Divergencia covariante de un tensor mixto
+curso: Relatividad general
+etiquetas: [derivada covariante, Christoffel, índices mudos]
+pizarra: lineas
+prueba:
+  objetivo: índices escalonados con \tensor y renombre de índices mudos en toda la línea y en un solo término
+  cubre: [tensor, indices-escalonados, renombrar, id]
+  esperado: ok
+---
+
+## Conservación
+$$ \nabla_{\mu} \tensor{T}{^\mu_\nu} = 0 $$
+> La divergencia covariante del tensor se anula.
+
+## Expandimos la derivada covariante
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\lambda}} \tensor{T}{^\lambda_\nu} - \tensor{\Gamma}{^\lambda_{\mu\nu}} \tensor{T}{^\mu_\lambda} = 0 $$
+> Un símbolo de Christoffel por cada índice: positivo para el superior, negativo para el inferior.
+
+## Renombramos λ en toda la línea
+:: renombrar \lambda \sigma
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\sigma}} \tensor{T}{^\sigma_\nu} - \id{t3}{\tensor{\Gamma}{^\sigma_{\mu\nu}} \tensor{T}{^\mu_\sigma}} = 0 $$
+> λ es un índice mudo: se puede llamar de cualquier forma.
+
+## Renombramos μ solo en el último término
+:: renombrar \mu \rho t3
+$$ \partial_{\mu} \tensor{T}{^\mu_\nu} + \tensor{\Gamma}{^\mu_{\mu\sigma}} \tensor{T}{^\sigma_\nu} - \tensor{\Gamma}{^\sigma_{\rho\nu}} \tensor{T}{^\rho_\sigma} = 0 $$
+> En el último término μ también es mudo; lo renombramos para no confundirlo con el del resto.
