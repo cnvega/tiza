@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tiza-verificar"
+version = "0.1.0"
+description = "Verificador CAS de guiones .tiza: compara cada paso con el anterior usando SymPy"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "AGPL-3.0-only"
+# D12: solo dependencias MIT, BSD, ISC, Apache-2.0 o MPL-2.0.
+dependencies = [
+  "sympy>=1.13",                        # BSD-3-Clause
+  "antlr4-python3-runtime==4.11.*",     # BSD-3-Clause (motor ANTLR de parse_latex)
+  "lark>=1.1",                          # MIT (motor Lark de parse_latex, respaldo)
+  "PyYAML>=6",                          # MIT (encabezado del guion)
+]
+
+[project.optional-dependencies]
+pruebas = ["pytest>=8", "jsonschema>=4"]  # MIT
+
+[project.scripts]
+tiza-verificar = "tiza_verificar.cli:principal"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning", "ignore::UserWarning"]
