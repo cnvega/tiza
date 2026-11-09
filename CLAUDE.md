@@ -12,7 +12,7 @@ Antes de cambiar nada, lee `docs/coordinacion.md` (en especial la sección 9) y 
 - Al terminar: PR cuya primera línea es `Closes #n` (en inglés, para que GitHub cierre el issue), con qué cambió, cómo se probó y capturas si es visual; etiqueta el issue `estado: en revisión` y comenta el estado.
 - Nunca hagas merge: Cris fusiona todos los PR.
 - Los issues declaran sus dependencias en la primera línea (`Depende de: #a, #b`). Si una sigue abierta, no empieces.
-- Si te bloquea una decisión, etiqueta el issue `requiere Cris` + `estado: bloqueado` y deja la pregunta con opciones. Si eres una sesión autónoma, al terminar ejecuta la tarea programada «Tiza · coordinador» (ver `docs/prompts/sesion-autonoma.md`).
+- Si te bloquea una decisión, etiqueta el issue `requiere Cris` + `estado: bloqueado` y deja la pregunta con opciones. Las sesiones autónomas siguen `docs/prompts/sesion-autonoma.md` y nunca crean ni ejecutan tareas programadas.
 - Cada error corregido deja un caso de prueba en `corpus/` o en las pruebas del paquete.
 
 ## Convenciones

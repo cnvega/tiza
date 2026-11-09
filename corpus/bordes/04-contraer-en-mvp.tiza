@@ -1,0 +1,20 @@
+---
+formato: tiza/0.2
+titulo: Traza de un tensor mixto con la delta de Kronecker
+prueba:
+  objetivo: contraer es un gesto de la v1.0; en el MVP debe dar W02 y usar la transición automática
+  cubre: [contraer, tensor, delta, renombrar, indices-con-posicion]
+  esperado: advertencia:W02
+---
+
+## Contracción con la delta
+$$ S = \tensor{T}{^\mu_\nu} \delta^{\nu}_{\mu} $$
+
+## La delta iguala los índices
+:: contraer _\nu ^\nu
+$$ S = \tensor{T}{^\mu_\mu} $$
+> La delta de Kronecker solo deja los términos con ν = μ.
+
+## Renombramos el índice mudo
+:: renombrar \mu \alpha
+$$ S = \tensor{T}{^\alpha_\alpha} $$

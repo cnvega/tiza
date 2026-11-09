@@ -1,0 +1,7 @@
+# Documentos, guiones y el prototipo de una página se formatean a mano.
+*.md
+*.tiza
+apps/prototipo/
+pnpm-lock.yaml
+LICENSE*
+LICENSES/

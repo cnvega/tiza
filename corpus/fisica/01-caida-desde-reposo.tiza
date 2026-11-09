@@ -6,7 +6,7 @@ pizarra: lineas
 supuestos:
   positivos: [m, g, h, v]
 prueba:
-  objetivo: cancelar con \id, pasar con #n y aparición de una raíz
+  objetivo: "cancelar con \\id, pasar con #n y aparición de una raíz"
   cubre: [cancelar, pasar, referencia-n, resaltar, raiz, recuadro]
   esperado: ok
 ---
