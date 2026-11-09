@@ -1,0 +1,19 @@
+---
+formato: tiza/0.2
+titulo: Velocidad con el paquete physics
+paquetes: [physics]
+prueba:
+  objetivo: activar el paquete physics debe dar W08 y componer \dv y \qty
+  cubre: [physics, dv, qty, pasar, parentesis-desaparecen]
+  esperado: advertencia:W08
+---
+
+## Movimiento con aceleración constante
+$$ \dv{x}{t} = \qty( v_0 + a t ) $$
+
+## Quitamos el paréntesis
+$$ \dv{x}{t} = v_0 + a t $$
+
+## La velocidad inicial pasa restando
+:: pasar v_0 izq
+$$ \dv{x}{t} - v_0 = a t $$

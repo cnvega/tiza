@@ -1,0 +1,48 @@
+---
+formato: tiza/0.2
+titulo: Dilatación del tiempo desde el intervalo invariante
+curso: Relatividad especial
+etiquetas: [intervalo, tiempo propio, factor de Lorentz]
+pizarra: lineas
+supuestos:
+  positivos: [c, \gamma, t, \tau]
+  reales: [v, x]
+prueba:
+  objetivo: tiempo propio desde el intervalo, con factorización, raíz y factor de Lorentz
+  cubre: [sustituir, factorizar, ambos-lados, simplificar, raiz, fracciones-anidadas, recuadro]
+  esperado: advertencia:W02
+---
+
+## Intervalo para un reloj en movimiento
+$$ -c^2 \mathrm{d}\tau^2 = -c^2 \mathrm{d}t^2 + \mathrm{d}x^2 $$
+> El intervalo es el mismo en el sistema del reloj y en el del laboratorio.
+
+## El reloj se mueve con velocidad v
+:: sustituir \mathrm{d}x = v\, \mathrm{d}t
+$$ -c^2 \mathrm{d}\tau^2 = -c^2 \mathrm{d}t^2 + v^2 \mathrm{d}t^2 $$
+
+## Factor común
+:: factorizar \mathrm{d}t^2
+$$ -c^2 \mathrm{d}\tau^2 = -\left( c^2 - v^2 \right) \mathrm{d}t^2 $$
+
+## Dividimos por −c²
+:: ambos-lados \cdot \left( -\frac{1}{c^2} \right)
+$$ \mathrm{d}\tau^2 = \frac{\left( c^2 - v^2 \right) \mathrm{d}t^2}{c^2} $$
+
+## Separamos la fracción
+:: simplificar
+$$ \mathrm{d}\tau^2 = \left( 1 - \frac{v^2}{c^2} \right) \mathrm{d}t^2 $$
+
+## Raíz cuadrada
+$$ \mathrm{d}\tau = \sqrt{1 - \frac{v^2}{c^2}}\, \mathrm{d}t $$
+> Los intervalos de tiempo son positivos: tomamos la raíz positiva.
+
+## La raíz pasa dividiendo
+:: pasar {\sqrt{1-\frac{v^2}{c^2}}} izq
+$$ \frac{\mathrm{d}\tau}{\sqrt{1 - \frac{v^2}{c^2}}} = \mathrm{d}t $$
+
+## Factor de Lorentz
+:: sustituir \gamma = \frac{1}{\sqrt{1 - \frac{v^2}{c^2}}}
+$$ \gamma\, \mathrm{d}\tau = \mathrm{d}t $$
+:: recuadro
+> El reloj en movimiento marca menos tiempo: dt = γ dτ, con γ ≥ 1.

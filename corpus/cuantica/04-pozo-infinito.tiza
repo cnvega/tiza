@@ -1,0 +1,57 @@
+---
+formato: tiza/0.2
+titulo: Energías del pozo de potencial infinito
+curso: Mecánica cuántica
+etiquetas: [Schrödinger, pozo infinito, condiciones de borde]
+pizarra: lineas
+supuestos:
+  positivos: [m, \hbar, L, k, E]
+  reales: [x, A, B, n, \psi]
+prueba:
+  objetivo: ecuación de Schrödinger independiente del tiempo, solución general y condiciones de borde
+  cubre: [pasar, sustituir, borrar, ambos-lados, fraccion, derivada-leibniz, recuadro]
+  esperado: advertencia:W02
+---
+
+## Ecuación de Schrödinger dentro del pozo
+$$ -\frac{\hbar^2}{2m} \frac{d^2\psi}{dx^2} = E \psi $$
+> Dentro del pozo el potencial es cero.
+
+## Multiplicamos por −2m/ħ²
+:: ambos-lados \cdot \left( -\frac{2m}{\hbar^2} \right)
+$$ \frac{d^2\psi}{dx^2} = -\frac{2mE}{\hbar^2} \psi $$
+
+## Definimos k
+:: sustituir \frac{2mE}{\hbar^2} = k^2
+$$ \frac{d^2\psi}{dx^2} = -k^2 \psi $$
+
+## Solución general
+$$ \psi(x) = A \sin(kx) + B \cos(kx) $$
+> Es la ecuación de un oscilador: senos y cosenos.
+
+## Borde en x = 0
+:: borrar {B\cos(kx)}
+$$ \psi(x) = A \sin(kx) $$
+> Como ψ(0) = 0, el coseno no puede estar: B = 0.
+
+## Borde en x = L
+$$ kL = n\pi $$
+> ψ(L) = 0 y A no puede ser cero: el seno se anula, y eso ocurre en múltiplos de π.
+
+## L pasa dividiendo
+:: pasar L der
+$$ k = \frac{n\pi}{L} $$
+
+## Elevamos al cuadrado
+:: ambos-lados ^2
+$$ k^2 = \frac{n^2\pi^2}{L^2} $$
+
+## Volvemos a la energía
+:: sustituir k^2 = \frac{2mE}{\hbar^2}
+$$ \frac{2mE}{\hbar^2} = \frac{n^2\pi^2}{L^2} $$
+
+## Despejamos E
+:: ambos-lados \cdot \frac{\hbar^2}{2m}
+$$ E = \frac{n^2\pi^2\hbar^2}{2mL^2} $$
+:: recuadro
+> La energía solo toma valores discretos: está cuantizada.

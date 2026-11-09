@@ -1,0 +1,19 @@
+---
+formato: tiza/0.2
+titulo: Contracción de un tensor simétrico
+prueba:
+  objetivo: índices μν y νμ en el mismo paso; intercambiar índices con referencias de posición y aparición
+  cubre: [intercambiar, indices-con-posicion, referencia-n, emparejamiento-indices]
+  esperado: ok
+---
+
+## Dos órdenes de índices
+$$ S = A_{\mu\nu} B^{\mu\nu} + A_{\nu\mu} B^{\mu\nu} $$
+> A es simétrico: A con νμ es igual a A con μν.
+
+## Usamos la simetría de A
+:: intercambiar _\nu#2 _\mu#2
+$$ S = A_{\mu\nu} B^{\mu\nu} + A_{\mu\nu} B^{\mu\nu} $$
+
+## Sumamos los términos iguales
+$$ S = 2 A_{\mu\nu} B^{\mu\nu} $$

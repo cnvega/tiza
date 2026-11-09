@@ -157,14 +157,16 @@ Calendario base: inicio 30 nov 2026; MVP 19 feb 2027; v1.0 18 jun 2027.
 
 ## 9. Coordinación y tareas autónomas
 
-Una sesión de chat actúa como **coordinador general**: planifica, abre los issues con sus dependencias, prepara los prompts, revisa los PR por contenido y lleva el tablero. Un **coordinador automático** (tarea programada «Tiza · coordinador») mantiene el ritmo cuando Cris no está.
+Una sesión de chat actúa como **coordinador general**: planifica, abre los issues con sus dependencias, prepara los prompts, revisa los PR por contenido y lleva el tablero. Tres tareas programadas mantienen el ritmo cuando Cris no está: el **coordinador automático** («Tiza · coordinador») ordena y reporta, y dos **sesiones de trabajo fijas** («Tiza · sesión A» y «Tiza · sesión B») toman y resuelven los issues listos.
 
 **Reglas acordadas con Cris (2026-11-07)**
 
 | Regla | Valor |
 | --- | --- |
 | Quién fusiona PR | Solo Cris, siempre |
-| Revisión automática | 08:41 y 18:41 (hora de Chile), y al terminar cada sesión autónoma |
+| Coordinador automático | 08:41 y 18:41 (hora de Chile) |
+| Sesión A | 09:13, 15:13 y 21:13 |
+| Sesión B | 09:43, 15:43 y 21:43 |
 | Sesiones autónomas simultáneas | Máximo 2 |
 | Avisos a Cris | Notificación solo cuando algo nuevo requiere su acción |
 
@@ -192,12 +194,15 @@ Una sesión de chat actúa como **coordinador general**: planifica, abre los iss
 
 **Ciclo de una tarea autónoma**
 
-1. El coordinador ve un issue `autónomo` + `estado: listo` y hay cupo: crea la tarea programada «Tiza · #N …» con el prompt de [`docs/prompts/sesion-autonoma.md`](prompts/sesion-autonoma.md) y marca el issue `estado: en curso`.
-2. La sesión trabaja en su rama, abre el PR con `Closes #N` y marca el issue `estado: en revisión`.
-3. Al terminar, la sesión ejecuta «Tiza · coordinador», que lanza la siguiente tarea lista.
-4. Cris revisa y fusiona. El issue se cierra solo y, en la siguiente revisión, el coordinador desbloquea lo que dependía de él.
+1. El coordinador desbloquea los issues cuyas dependencias se cerraron (`estado: listo`).
+2. En su siguiente horario, la sesión A o B toma el issue `autónomo` + `estado: listo` de número más bajo: lo etiqueta `estado: en curso` y comenta «Tomado por la sesión A» (o B). Si encuentra un reclamo de la otra sesión anterior al suyo, lo libera y elige otro.
+3. Trabaja en su rama, la sube seguido y abre el PR con `Closes #N`; marca el issue `estado: en revisión`.
+4. Si una ejecución no alcanza a terminar, la siguiente de la misma sesión retoma la rama (reclamo de más de 3 h sin PR). Si pasan 8 h sin avance, el coordinador devuelve el issue a la cola.
+5. Cris revisa y fusiona. El issue se cierra solo y el coordinador desbloquea lo que dependía de él.
 
-Si una sesión se traba en una decisión, deja el issue `requiere Cris` + `estado: bloqueado` con una pregunta concreta; el coordinador avisa a Cris.
+Si una sesión se traba en una decisión, deja el issue `requiere Cris` + `estado: bloqueado` con una pregunta concreta; el coordinador la incluye en el Tablero y avisa a Cris.
 
-**Lanzar una sesión a mano.** Abre una sesión nueva de Claude Code con acceso a GitHub y pega el prompt de `docs/prompts/sesion-autonoma.md` con el número del issue. Antes, etiqueta el issue `estado: en curso` para que el coordinador no lo lance dos veces.
+**Por qué sesiones fijas (2026-11-08).** El primer diseño hacía que el coordinador creara una tarea programada por issue. Las dos primeras ejecuciones quedaron detenidas justo en ese paso, sin crear nada: una tarea programada no puede crear otras sin una aprobación que nadie está ahí para dar. Con dos sesiones fijas ninguna tarea programada crea, modifica ni ejecuta otras.
+
+**Adelantar una sesión.** Desde una sesión con acceso a las tareas programadas, ejecuta «Tiza · sesión A» o «Tiza · sesión B» fuera de horario. Para un issue puntual, abre una sesión de Claude Code con acceso a GitHub y pega el prompt de `docs/prompts/sesion-autonoma.md`; antes, etiqueta el issue `estado: en curso` y comenta «Tomado por sesión manual» para que A y B no lo tomen.
 

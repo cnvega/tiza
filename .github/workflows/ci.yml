@@ -1,0 +1,46 @@
+# CI de Tiza: corre en cada PR y en cada push a main.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  revisar:
+    name: Tipos, lint, formato, pruebas y licencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Instalar
+        run: pnpm install --frozen-lockfile
+
+      - name: Tipos
+        run: pnpm tipos
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Formato
+        run: pnpm formato:revisar
+
+      - name: Pruebas
+        run: pnpm test
+
+      - name: Licencias (D12)
+        run: pnpm licencias

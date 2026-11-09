@@ -1,0 +1,19 @@
+---
+formato: tiza/0.2
+titulo: Paréntesis ajustado sin cierre
+prueba:
+  objetivo: un \left sin su \right en la fórmula debe dar E13
+  cubre: [delimitadores-ajustados, validacion]
+  esperado: error:E13
+---
+
+## Ecuación inicial
+$$ \left( x + 1 \right)^2 = 9 $$
+
+## Raíz cuadrada (falta el cierre)
+$$ \left( x + 1 = 3 $$
+> Error deliberado: el \left( no tiene su \right).
+
+## Despejamos
+:: pasar 1 der
+$$ x = 3 - 1 $$
