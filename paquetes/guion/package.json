@@ -1,0 +1,15 @@
+{
+  "name": "@tiza/guion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Analizador y validador de guiones .tiza (C1 → C2).",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "tipos": "tsc --noEmit",
+    "test": "vitest run"
+  }
+}
